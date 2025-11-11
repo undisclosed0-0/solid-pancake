@@ -1,0 +1,1113 @@
+this is the main presenatation not the whole web page to be styled thsi way it should give a modern look but a community engagedment logic still . placeholders pictures can be  community vector or real life like pictures to implement as well in the html,CSS,JS
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citywide Transport</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+  
+  <style>/* ======== GLOBAL & BRANDING ======== */
+    
+:root {
+    --bg-color: #121212;      /* Dark background */
+    --surface-color: #1e1e1e; /* Card background */
+    --primary-color: #FF0000; /* Red from your logo */
+    --text-color: #E0E0E0;    /* Light grey text */
+    --text-color-dark: #888;  /* Muted text */
+}
+
+/* Basic Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+h1, h2, h3 {
+    margin-bottom: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+h1 { font-size: 3rem; }
+h2 { font-size: 2.2rem; text-align: center; margin-bottom: 2.5rem; }
+h3 { font-size: 1.5rem; }
+
+p { margin-bottom: 1rem; }
+a { color: var(--primary-color); text-decoration: none; }
+
+.card {
+    background: var(--surface-color);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 2.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* ======== HEADER & NAVIGATION ======== */
+.main-header {
+    background: rgba(18, 18, 18, 0.8); /* Semi-transparent */
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #333;
+    padding: 1rem 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.main-header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    height: 50px; /* Adjust as needed */
+    width: auto;
+}
+
+.main-nav a {
+    color: var(--text-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    margin-left: 1.5rem;
+    transition: color 0.2s ease;
+}
+
+.main-nav a:hover {
+    color: var(--primary-color);
+}
+
+/* ======== SPA "VIEW" LOGIC ======== */
+main {
+    padding-top: 80px; /* Offset for fixed header */
+}
+
+.view {
+    display: none; /* All views hidden by default */
+    padding: 3rem 0;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.view.active {
+    display: block; /* JS will add this class to show the page */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ======== HOME: HERO SECTION ======== */
+.hero {
+    text-align: center;
+    padding: 4rem 0 6rem 0;
+}
+
+.hero h1 {
+    color: #fff;
+}
+
+.hero .subtitle {
+    font-size: 1.25rem;
+    color: var(--text-color-dark);
+    margin-bottom: 3rem;
+    font-weight: 300;
+}
+
+/* ======== HOME: BOOKING FORM ======== */
+#book-ride-form {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Style form inputs */
+input[type="text"],
+input[type="tel"] {
+    width: 100%;
+    padding: 15px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 1rem;
+}
+
+input[type="text"]:focus,
+input[type="tel"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.btn-primary {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-primary:hover {
+    background: #c00; /* Darker red on hover */
+}
+
+#booking-status {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+#booking-status strong {
+    color: var(--primary-color);
+}
+
+/* ======== HOME: HOW IT WORKS ======== */
+.how-it-works {
+    background: var(--surface-color);
+    padding: 4rem 0;
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    text-align: center;
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0 auto 1.5rem auto;
+}
+
+.step h3 {
+    color: #fff;
+}
+
+/* ======== ADMIN PANEL ======== */
+.admin-container {
+    max-width: 900px;
+    text-align: center;
+}
+
+#gsi-button-container {
+    max-width: 400px;
+    margin: 2rem auto 0 auto;
+    display: flex;
+    justify-content: center;
+}
+
+/* Style the admin table */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+#rides-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    text-align: left;
+}
+
+#rides-table th,
+#rides-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #333;
+}
+
+#rides-table th {
+    background: #2a2a2a;
+    color: var(--primary-color);
+}
+
+/* ======== LOADING SPINNER ======== */
+#loading-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9998;
+}
+
+.spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    border: 5px solid #555;
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 9999;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Responsive Grid for Form */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .steps-grid {
+        grid-template-columns: 1fr;
+    }
+    h1 { font-size: 2.2rem; }
+}
+  
+  
+  
+  
+  /* ======== "PAMPHLET" STYLES ======== */
+
+/* 1. New Hero Section (The "Cover") */
+.hero-community {
+    padding: 6rem 0;
+    text-align: center;
+    /* IMPORTANT: Add your community background image here!
+      e.g., background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('your-people-image.jpg');
+      background-size: cover;
+      background-position: center;
+    */
+    background-color: #222; /* Fallback */
+}
+
+.hero-community h1 {
+    color: #fff;
+    font-size: 2.8rem;
+    line-height: 1.1;
+    margin: 0;
+}
+
+/* A special button just for scrolling */
+.btn-scroll {
+    display: inline-block; /* Not full-width */
+    width: auto;
+    padding: 15px 30px;
+    margin-top: 2rem;
+}
+
+/* 2. Community Values (The "Inside Flap") */
+.community-values {
+    background: var(--surface-color);
+    padding: 4rem 0;
+}
+
+.community-values .container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+    text-align: center;
+}
+
+.value-item .icon {
+    height: 60px; /* Adjust size as needed */
+    width: auto;
+    margin-bottom: 1.5rem;
+    /* If using white/red icons, you might need: */
+    /* filter: invert(1) sepia(1) saturate(5) hue-rotate(315deg); */
+}
+
+.value-item h3 {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.value-item p {
+    color: var(--text-color-dark);
+    font-size: 0.9rem;
+}
+
+/* 3. Booking Section Wrapper */
+.booking-section-wrapper {
+    padding: 4rem 0;
+    background: #1a1a1a; /* Slightly different shade */
+}
+
+.booking-section-wrapper h2 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 2rem;
+}
+
+/* 4. How-it-Works (tweaked to feel like "back panel") */
+.how-it-works {
+    background: var(--bg-color); /* Back to the darkest bg */
+    padding: 4rem 0 5rem 0;
+}
+
+
+/* Responsive styles for the new sections */
+@media (max-width: 768px) {
+    .hero-community h1 {
+        font-size: 2rem;
+    }
+    
+    .community-values .container {
+        grid-template-columns: 1fr;
+    }
+}
+  
+  
+  /* --- NEW PANEL STYLES --- */
+
+/* Style for the login portal */
+#portal-view .admin-container {
+    max-width: 600px;
+}
+#portal-view #gsi-button-container {
+    max-width: 400px;
+    margin: 2rem auto 0 auto;
+    display: flex;
+    justify-content: center;
+}
+#login-status {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* Style for driver panel */
+#driver-status-text {
+    font-size: 1.1rem;
+}
+#driver-status-text strong {
+    color: var(--primary-color);
+}
+  
+  
+  /* ======== MAIN PRESENTATION / HERO STYLES ======== */
+
+.hero-presentation {
+    /* This makes the hero take up the full screen */
+    height: 100vh; 
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background-color: #000; /* Fallback */
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    /* This can be a real image */
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('');
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 600px;
+    padding: 2rem;
+    color: #fff;
+    /* Fade-in animation for a modern feel */
+    animation: fadeIn 1.5s ease-out;
+}
+
+.hero-logo {
+    width: 100%;
+    max-width: 350px;
+    height: auto;
+    margin-bottom: 2rem;
+}
+
+.hero-headline {
+    font-size: 3rem; /* 48px */
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+.hero-tagline {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 2.5rem;
+}
+
+.hero-cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+/* Base button style */
+.btn {
+    display: inline-block;
+    padding: 12px 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 50px; /* Modern rounded buttons */
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+/* Primary button (matches your logo red) */
+.btn.btn-primary {
+    background: var(--primary-color);
+    color: #fff;
+    border: 2px solid var(--primary-color);
+}
+
+.btn.btn-primary:hover {
+    background: #c00; /* Darker red */
+    border-color: #c00;
+    transform: translateY(-2px);
+}
+
+/* Secondary button (ghost style) */
+.btn.btn-secondary {
+    background: transparent;
+    color: #fff;
+    border: 2px solid #fff;
+}
+
+.btn.btn-secondary:hover {
+    background: #fff;
+    color: #000;
+    transform: translateY(-2px);
+}
+
+/* Community vector/icon section */
+.community-icons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* You would style your vector images here */
+.community-icons img {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+@media (max-width: 768px) {
+    .hero-headline {
+        font-size: 2.2rem;
+    }
+    .hero-cta-buttons {
+        flex-direction: column;
+    }
+}</style>
+<body>
+<header class="main-header">
+    <div class="container">
+        <a href="#landing-view" class="logo-link">
+            <img src="178108cb417d8435e42aeebd79da000ccf1da2a9-1.jfif" alt="Citywide Logo" class="logo">
+        </a>
+        
+        <nav class="main-nav">
+            <a href="#landing-view">Home</a>
+            <a href="#home-view">Ride With Us</a>
+            <a href="#portal-view">Drive With Us</a>
+            <a href="#portal-view">Driver/Admin Portal</a>
+        </nav>
+    </div>
+</header>
+<div id="loading-overlay">
+    <div class="spinner"></div>
+</div>
+
+<main>
+    
+    <section id="landing-view" class="view hero-presentation active"> <div class="hero-background">
+            
+        </div>
+
+        <div class="hero-content">
+            <img src="178108cb417d8435e42aeebd79da000ccf1da2a9-1.jfif" alt="Citywide Logo" class="hero-logo">
+            <h1 class="hero-headline">Moving Our Community Forward.</h1>
+            <p class="hero-tagline">
+                By the community, for the community. Citywide is your local, 
+                friendly transport solution.
+            </p>
+            <div class="hero-cta-buttons">
+                <a href="#home-view" id="cta-ride-btn" class="btn btn-primary">Book Your Ride</a>
+                <a href="#driver-view" id="cta-drive-btn" class="btn btn-secondary">Drive With Us</a>
+            </div>
+            <div class="community-icons">
+                 
+                <span>Join 1,500+ neighbors</span>
+            </div>
+        </div>
+    </section>
+
+    <section id="home-view" class="view">
+        <section class="hero-community">
+            <div class="container">
+                <h1>Connecting Our Community,</h1>
+                <h1>One Ride at a Time.</h1>
+                <p class="subtitle">Reliable, friendly transport by drivers from your neighborhood.</p>
+                <a href="#booking-section" class="btn-primary btn-scroll">Book Your Ride Now</a>
+            </div>
+        </section>
+        
+        <section class="community-values">
+            <div class="container">
+                <div class="value-item">
+                    <img src="" alt="Safety Icon" class="icon">
+                    <h3>Safety You Can Trust</h3>
+                    <p>All drivers are background-checked and professionally vetted.</p>
+                </div>
+                <div class="value-item">
+                    <img src="" alt="Community Icon" class="icon">
+                    <h3>Local Drivers</h3>
+                    <p>Our drivers are your neighbors, who know the city best.</p>
+                </div>
+                <div class="value-item">
+                    <img src="" alt="Reliability Icon" class="icon">
+                    <h3>Reliable & Ready</h3>
+                    <p>Book a ride in seconds, 24/7. We're here when you need us.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="booking-section" class="booking-section-wrapper">
+            <div class="container">
+                <div class="card">
+                    <h2>Join the Community. Book Your Ride.</h2>
+                   <form id="book-ride-form">
+    <div class="form-grid">
+        <input type="text" id="user-name" placeholder="Your Name" required>
+        <input type="tel" id="user-phone" placeholder="Your Phone" required>
+        <input type="text" id="pickup" placeholder="Pickup Location" required>
+        <input type="text" id="dropoff" placeholder="Dropoff Location" required>
+    </div>
+
+    <hr style="margin: 1.5rem 0; border-color: #333;">
+
+    <div class="form-grid details-grid" style="grid-template-columns: 1fr 1fr;">
+        <input type="number" id="passengers" placeholder="Total Passengers (1-6)" min="1" max="6" value="1" required>
+        
+        <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="children"> <label for="children">Traveling with Children?</label>
+        </div>
+        
+        <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="pets"> <label for="pets">Traveling with Pets?</label>
+        </div>
+
+        <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="luggage"> <label for="luggage">Excessive Luggage?</label>
+        </div>
+        
+        <div class="checkbox-group full-width" style="grid-column: 1 / 3; display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="assistanceWaiver"> <label for="assistanceWaiver">Requires physical assistance / Waiver accepted</label>
+        </div>
+    </div>
+    <button type="submit" class="btn-primary">Request Now</button>
+    <div id="booking-status"></div>
+</form>
+                </div>
+            </div>
+        </section>
+        
+        <section class="how-it-works">
+            <div class="container">
+                <h2>How It Works</h2>
+                <div class="steps-grid">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Request</h3>
+                        <p>Enter your details and locations in the form above to find a driver.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Ride</h3>
+                        <p>We'll find the nearest available driver, who will be dispatched to your location.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Arrive</h3>
+                        <p>Arrive at your destination safely. Your ride details are saved for your convenience.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </section>
+    
+    <section id="driver-panel-view" class="view">
+        <div class="container admin-container">
+            <h2 id="driver-welcome">Welcome, Driver!</h2>
+            
+            <div class="card">
+                <h3>Your Status</h3>
+                <p>Toggle your availability for receiving new ride requests.</p>
+                <button id="toggle-availability-btn" class="btn-primary" style="margin-top: 1rem;">Go On Duty</button>
+                <div id="driver-status-text" style="margin-top: 1rem;">Your status is: <strong>Offline</strong></div>
+            </div>
+            
+            <div class="card" style="margin-top: 2rem;">
+                <h3>Your Assigned Rides (Pending)</h3>
+                <div class="table-wrapper">
+                    <table id="driver-rides-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section id="admin-panel-view" class="view">
+        <div class="container admin-container">
+            <h2>Admin Dashboard</h2>
+            
+            <div class="card">
+                <h3>All Rides</h3>
+                <div class="table-wrapper">
+                    <table id="admin-rides-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+  
+  <section id="portal-view" class="view auth-page">
+    <div class="container">
+      <div id="gsi-invisible-prompt" style="display: none;"></div>
+        <h2>Driver & Admin Login</h2>
+        <p>Please sign in with your Google account to access your dashboard.</p>
+        
+        <div id="gsi-button-container" style="margin-top: 20px;">
+            </div>
+
+        <div id="login-status" style="margin-top: 15px; font-weight: bold;"></div>
+        
+        <button onclick="logout()" class="btn-secondary" style="margin-top: 30px;">
+            Logout
+        </button>
+    </div>
+</section>
+  
+  
+  
+    </main>
+           
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="script.js"></script>
+<script>
+ // !!! IMPORTANT: Paste your DEPLOYED WEB APP URL here
+const API_URL = "https://script.google.com/macros/s/AKfycbyyIBp_A4nezssn33cm2oNHNaGftrvv5F5QvSjslZSTkL9u1BpfIVmdkQxhoRqYg6HFkg/exec";
+
+// --- GLOBAL ELEMENTS ---
+const loadingSpinner = document.getElementById('loading-overlay');
+const bookForm = document.getElementById('book-ride-form');
+const bookingStatus = document.getElementById('booking-status');
+const loginStatus = document.getElementById('login-status');
+// --- Global Variable for Logout ---
+let googleUserId = null; // Will store the user's 'sub' ID after successful login 
+
+// --- Google Sign-In (Login Logic) in window.onload ---
+// (No change to window.onload needed)
+
+// --- Smart Login Callback (handleCredentialResponse) ---
+async function handleCredentialResponse(response) {
+    const user = parseJwt(response.credential);
+    const userEmail = user.email;
+    
+    // 🔥 NEW: Store the unique Google User ID for later revocation (logout)
+    googleUserId = user.sub; 
+
+    // ... (rest of the existing logic)
+}
+
+// --- NEW ROUTER (Handles all new pages) ---
+function handleHashChange() {
+    // Default to #landing-view
+    let hash = window.location.hash || "#landing-view"; 
+
+    // Security Check: If user tries to access a panel without being logged in, send them to the portal
+    const userRole = localStorage.getItem("userRole");
+    
+    if ((hash === "#admin-panel-view" && userRole !== "admin") || 
+        (hash === "#driver-panel-view" && userRole !== "driver")) {
+        
+        if (hash.includes("-panel-view") && userRole) {
+            alert("Access Denied. You are not authorized for this dashboard.");
+        }
+        hash = "#portal-view"; // Redirect all unauthorized attempts to login
+    }
+
+    // Hide all views
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+    });
+
+    // Show the active view
+    const activeView = document.querySelector(hash); 
+    if (activeView) {
+        activeView.classList.add('active');
+    } else {
+        // Fallback if hash is invalid or points to nothing
+        document.querySelector("#home-view").classList.add('active');
+    }
+    
+    // 🔥 CRITICAL FIX: Render the button if we are on the portal view
+    // This resolves the issue where the button doesn't appear because the container 
+    // was hidden when the page initially loaded.
+    if (hash === "#portal-view") {
+        const gsiContainer = document.getElementById("gsi-button-container");
+        if (gsiContainer && window.google && window.google.accounts) {
+            google.accounts.id.renderButton(
+                gsiContainer,
+                { theme: "outline", size: "large" } 
+            );
+        }
+    }
+
+    // Load data if we landed on a dashboard
+    if (hash === "#admin-panel-view") {
+        loadAdminDashboard();
+    } else if (hash === "#driver-panel-view") {
+        loadDriverDashboard();
+    }
+}
+
+
+// --- Google Sign-In (Login Logic) ---
+window.onload = function() {
+    handleHashChange(); // Handle initial page load
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Initialise Google Sign-In Client with your ID
+    google.accounts.id.initialize({
+        client_id: "290258312369-dvtidrarb7kosrqipq45t1ueqrf23hsm.apps.googleusercontent.com", 
+        callback: handleCredentialResponse
+    });
+
+    // Initial rendering attempt (will only work if #portal-view is active on load)
+    const gsiContainer = document.getElementById("gsi-button-container");
+    if (gsiContainer) {
+        google.accounts.id.renderButton(
+            gsiContainer,
+            { theme: "outline", size: "large" } 
+        );
+    }
+};
+
+// --- NEW: Smart Login Callback ---
+async function handleCredentialResponse(response) {
+    const user = parseJwt(response.credential);
+    const userEmail = user.email;
+
+    localStorage.setItem("userEmail", userEmail);
+    loginStatus.innerHTML = "Authenticating...";
+
+    // Check with our API what role this user has
+    loadingSpinner.style.display = 'block';
+    const checkAuthUrl = `${API_URL}?action=checkAuth&email=${userEmail}`;
+    const res = await fetch(checkAuthUrl);
+    const authData = await res.json();
+    loadingSpinner.style.display = 'none';
+
+    if (authData.status === "success") {
+        localStorage.setItem("userRole", authData.role);
+
+        // --- REDIRECTION FIX: Use setTimeout and explicit call for reliable routing ---
+        if (authData.role === "admin") {
+            loginStatus.innerHTML = "Admin login successful. Redirecting...";
+            window.location.hash = "#admin-panel-view";
+            setTimeout(handleHashChange, 50); // Small delay for reliable routing
+
+        } else if (authData.role === "driver") {
+            loginStatus.innerHTML = "Driver login successful. Redirecting...";
+            window.location.hash = "#driver-panel-view";
+            setTimeout(handleHashChange, 50); // Small delay for reliable routing
+
+        } else {
+            localStorage.removeItem("userEmail");
+            localStorage.removeItem("userRole");
+            loginStatus.innerHTML = "<strong>Access Denied.</strong> This email is not registered as a driver or admin.";
+        }
+    } else {
+        loginStatus.innerHTML = "Error during authentication.";
+    }
+}
+
+// --- NEW: Driver Panel Logic ---
+async function loadDriverDashboard() {
+    const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) return;
+
+    loadingSpinner.style.display = 'block';
+    const dataUrl = `${API_URL}?action=getDriverData&email=${userEmail}`;
+    const res = await fetch(dataUrl);
+    const data = await res.json();
+    loadingSpinner.style.display = 'none';
+
+    if (data.status === "success") {
+        // 1. Welcome message and status
+        document.getElementById('driver-welcome').textContent = `Welcome, ${data.info.name}!`;
+        updateDriverStatusUI(data.info.isAvailable);
+
+        // 2. Populate rides table
+        const tableBody = document.getElementById('driver-rides-table').querySelector('tbody');
+        const tableHead = document.getElementById('driver-rides-table').querySelector('thead');
+        populateTable(tableHead, tableBody, data.rides);
+    }
+
+    // Add event listener for the toggle button
+    document.getElementById('toggle-availability-btn').onclick = handleToggleAvailability;
+}
+
+// NEW: Toggle Availability
+async function handleToggleAvailability() {
+    const userEmail = localStorage.getItem("userEmail");
+    loadingSpinner.style.display = 'block';
+
+    const toggleUrl = `${API_URL}?action=toggleAvailability&email=${userEmail}`;
+    const res = await fetch(toggleUrl);
+    const data = await res.json();
+
+    loadingSpinner.style.display = 'none';
+    if (data.status === "success") {
+        updateDriverStatusUI(data.isAvailable);
+    } else {
+        alert("Error updating status.");
+    }
+}
+
+// NEW: Helper to update driver status UI
+function updateDriverStatusUI(isAvailable) {
+    const btn = document.getElementById('toggle-availability-btn');
+    const statusText = document.getElementById('driver-status-text');
+    if (isAvailable) {
+        btn.textContent = "Go Off Duty";
+        btn.style.backgroundColor = "#888"; // Grey out
+        statusText.innerHTML = "Your status is: <strong>Online & Available</strong>";
+    } else {
+        btn.textContent = "Go On Duty";
+        btn.style.backgroundColor = "var(--primary-color)"; // Back to red
+        statusText.innerHTML = "Your status is: <strong>Offline</strong>";
+    }
+}
+
+// --- Admin Panel Logic ---
+async function loadAdminDashboard() {
+    loadingSpinner.style.display = 'block';
+    const adminDataUrl = `${API_URL}?action=getAdminDashboard`;
+    const res = await fetch(adminDataUrl);
+    const data = await res.json();
+    loadingSpinner.style.display = 'none';
+
+    if (data.status === "success") {
+        const tableBody = document.getElementById('admin-rides-table').querySelector('tbody');
+        const tableHead = document.getElementById('admin-rides-table').querySelector('thead');
+        populateTable(tableHead, tableBody, data.data);
+    }
+}
+
+// --- Home/Booking Logic (Unchanged) ---
+bookForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('user-name').value;
+    const phone = document.getElementById('user-phone').value;
+    const pickup = document.getElementById('pickup').value;
+    const dropoff = document.getElementById('dropoff').value;
+
+    localStorage.setItem("userName", name);
+    localStorage.setItem("userPhone", phone);
+
+    loadingSpinner.style.display = 'block';
+    bookingStatus.innerHTML = "Finding a driver...";
+
+    const url = `${API_URL}?action=requestRide&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&pickup=${encodeURIComponent(pickup)}&dropoff=${encodeURIComponent(dropoff)}`;
+
+    try {
+        const response = await fetch(url);
+        const result = await response.json();
+        loadingSpinner.style.display = 'none';
+
+        if (result.status === "success") {
+            bookingStatus.innerHTML = `<strong>Success!</strong> Your ride (${result.rideId}) is booked with ${result.driver}.`;
+            bookForm.reset();
+        } else {
+            bookingStatus.innerHTML = `<strong>Error:</strong> ${result.message}`;
+        }
+    } catch (error) {
+        loadingSpinner.style.display = 'none';
+        bookingStatus.innerHTML = `<strong>Network Error:</strong> ${error.message}`;
+    }
+});
+
+// Pre-fill form from Local Storage
+document.getElementById('user-name').value = localStorage.getItem("userName") || '';
+document.getElementById('user-phone').value = localStorage.getItem("userPhone") || '';
+
+
+// --- HELPER FUNCTIONS ---
+
+// NEW: Reusable function to populate any table
+function populateTable(tableHead, tableBody, dataArray) {
+    tableHead.innerHTML = '';
+    tableBody.innerHTML = '';
+
+    if (dataArray.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="100%">No data found.</td></tr>';
+        return;
+    }
+
+    // Create Header
+    const headerRow = document.createElement('tr');
+    dataArray[0].forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+    tableHead.appendChild(headerRow);
+
+    // Create Data Rows
+    dataArray.slice(1).forEach(row => { // Start from 1 to skip header
+        let tr = document.createElement('tr');
+        row.forEach(cellText => {
+            const td = document.createElement('td');
+            td.textContent = cellText;
+            tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+    });
+}
+
+// NEW: Helper to parse Google JWT 
+function parseJwt(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+}
+  // --- LOGOUT FUNCTIONS ---
+
+// --- LOGOUT FUNCTIONS (AGGRESSIVE CLEAR) ---
+
+// --- LOGOUT FUNCTIONS (AGGRESSIVE CLEAR) ---
+
+// This function attempts to revoke the token, forcing the user to re-select 
+// their account from the Google Account Chooser next time.
+function aggressiveGoogleSignOut(callback) {
+    if (!googleUserId) {
+        console.log("No Google user ID found to revoke.");
+        return;
+    }
+    
+    // This calls the Google API to explicitly revoke access for this user/client ID
+    google.accounts.id.revoke(googleUserId, (response) => {
+        // This is a powerful command and should clear the cookie for your app.
+        if (response.error) {
+            console.error("Logout Revocation Error:", response.error);
+        } else {
+            console.log("Google user access successfully revoked.");
+        }
+        
+        // Always run the callback to finish the app-side logout process
+        if (callback) callback();
+    });
+    
+    // Also run the standard function for good measure
+    google.accounts.id.disableAutoSelect();
+}
+
+function logout() {
+    loginStatus.innerHTML = "Logging out...";
+    
+    // Clear the tokens and roles we stored locally
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    googleUserId = null; // Clear the global variable
+    
+    // Tell Google to forget the user, and then redirect
+    aggressiveGoogleSignOut(() => {
+        // 1. Clear the button container's content (the visual email persistence)
+        const gsiContainer = document.getElementById("gsi-button-container");
+        if (gsiContainer) {
+            gsiContainer.innerHTML = ''; 
+        }
+        
+        // 2. Redirect to the portal view
+        loginStatus.innerHTML = "Logged out successfully.";
+        window.location.hash = "#portal-view"; 
+        
+        // 3. Force the router to run and re-render the clean button
+        setTimeout(handleHashChange, 50); 
+    });
+}</script>
+  </body>
+</html>
