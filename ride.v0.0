@@ -3,652 +3,540 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CityWide Logistics Dispatch (Apps Script)</title>
-    <!-- Load Tailwind CSS -->
+    <title>CityWide Logistics Dispatch</title>
+    <!-- Load Tailwind CSS from CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --primary-color: #ef4444; /* Red 500 */
-            --secondary-color: #10b981; /* Emerald 500 */
+            --primary-color: #3b82f6; /* Blue-500 */
+            --secondary-color: #10b981; /* Emerald-500 */
+            --danger-color: #ef4444; /* Red-500 */
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #f3f4f6; /* Light gray background */
         }
         .container {
-            max-width: 1000px;
+            max-width: 480px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
-        .icon-lg { width: 24px; height: 24px; }
-        .dashboard-card {
-            min-height: 120px;
-        }
-        /* Style the required scrollbar for the table container */
-        .table-container {
-            overflow-x: auto;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-        /* Custom scrollbar for aesthetics */
-        .table-container::-webkit-scrollbar {
-            width: 8px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
+        .btn-primary {
             background-color: var(--primary-color);
-            border-radius: 10px;
+            transition: transform 0.1s, opacity 0.1s;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* Blue-600 */
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            transition: transform 0.1s, opacity 0.1s;
+        }
+        .btn-secondary:hover {
+            background-color: #059669; /* Emerald-600 */
+            transform: translateY(-1px);
+        }
+        .tab-button.active {
+            border-bottom: 3px solid var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        /* Custom spinner for loading state */
+        .spinner {
+            border-top-color: #fff;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body>
+<body class="p-4 flex justify-center min-h-screen">
 
-<div id="app" class="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-8">
-    <!-- Header -->
-    <header class="w-full container bg-white shadow-xl rounded-xl p-4 mb-6 sticky top-0 z-10">
-        <div class="flex flex-col sm:flex-row justify-between items-center">
-            <h1 class="text-3xl font-extrabold text-gray-800 flex items-center mb-3 sm:mb-0">
-                <i data-lucide="truck" class="text-red-500 mr-3"></i> CityWide Dispatch
-            </h1>
-            <div id="authStatus" class="text-sm font-medium text-gray-600 flex items-center">
-                <!-- Status will be updated by JS -->
+    <div id="app" class="container bg-white rounded-xl h-full flex flex-col overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-gray-800 p-4 text-white flex justify-between items-center rounded-t-xl">
+            <h1 class="text-xl font-bold tracking-wide">CityWide Dispatch</h1>
+            <button id="settingsButton" class="p-1 rounded-full hover:bg-gray-700 transition">
+                <!-- Settings Icon SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 0-2 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2h.44a2 2 0 0 0-2-2v-.44a2 2 0 0 0-2-2h-.44a2 2 0 0 0-2-2v-.44a2 2 0 0 0-2-2h-.44a2 2 0 0 0-2-2v-.44a2 2 0 0 0-2-2zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+            </button>
+        </header>
+
+        <!-- Main Navigation Tabs -->
+        <nav id="mainTabs" class="flex border-b bg-white">
+            <!-- Tabs will be generated here -->
+        </nav>
+
+        <!-- Notification/Error Message Area -->
+        <div id="messageContainer" class="p-3">
+            <div id="statusMessage" class="hidden text-sm p-3 rounded-lg font-medium"></div>
+            <div id="errorMessage" class="hidden text-sm p-3 rounded-lg font-medium bg-red-100 text-red-700"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="contentArea" class="flex-grow p-4 overflow-y-auto">
+            <div id="loadingIndicator" class="text-center text-gray-500 py-10 hidden">
+                <div class="spinner border-4 border-gray-300 h-10 w-10 rounded-full mx-auto mb-3" role="status"></div>
+                <p>Loading data...</p>
             </div>
-        </div>
-        <div id="nav" class="mt-4 flex space-x-2 sm:space-x-4 overflow-x-auto pb-2">
-            <!-- Navigation buttons will be injected here -->
-        </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main id="content" class="w-full container flex-grow">
-        <!-- Views will be dynamically injected here -->
-        <div id="loadingIndicator" class="text-center p-12 text-gray-500 text-lg">
-            <div class="animate-spin inline-block w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full"></div>
-            <p class="mt-4">Checking user role and fetching data...</p>
-        </div>
-        <div id="errorDisplay" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
-            <strong class="font-bold">Error:</strong>
-            <span id="errorMessage" class="block sm:inline"></span>
-        </div>
-    </main>
-
-    <!-- Modal Placeholder (for alerts/confirmation) -->
-    <div id="modalContainer" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all duration-300">
-            <h3 id="modalTitle" class="text-xl font-bold mb-3 text-red-500"></h3>
-            <p id="modalMessage" class="text-gray-700 mb-6"></p>
-            <div id="modalButtons" class="flex justify-end space-x-3">
-                <!-- Buttons will be injected -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // ⚠️ IMPORTANT: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE ⚠️
-    const SCRIPT_URL = "YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE"; 
-    // Example: "https://script.google.com/macros/s/AKfycbu..." 
-
-    // --- STATE MANAGEMENT ---
-    let userRole = 'none'; // 'none', 'driver', 'admin', 'master_admin'
-    let userEmail = 'N/A';
-    let currentView = 'Public'; 
-    let rides = []; // Stores all rides (for admin) or assigned rides (for driver)
-    let availableDrivers = []; // Stores driver data (for admin)
-
-    // --- UTILITIES ---
-
-    function showModal(title, message, buttons) {
-        const modalContainer = document.getElementById('modalContainer');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalButtons = document.getElementById('modalButtons');
-
-        if (!modalContainer || !modalTitle || !modalMessage || !modalButtons) {
-            console.error("Modal elements not found. Cannot show modal.");
-            return;
-        }
-
-        modalTitle.textContent = title;
-        modalMessage.textContent = message;
-        modalButtons.innerHTML = '';
-
-        buttons.forEach(btn => {
-            const button = document.createElement('button');
-            button.className = `px-4 py-2 rounded-lg font-bold transition-colors ${btn.className || 'bg-red-500 text-white hover:bg-red-600'}`;
-            button.textContent = btn.text;
-            button.onclick = () => {
-                btn.handler();
-                hideModal();
-            };
-            modalButtons.appendChild(button);
-        });
-
-        modalContainer.classList.remove('hidden');
-        modalContainer.classList.add('flex');
-    }
-
-    function hideModal() {
-        const modalContainer = document.getElementById('modalContainer');
-        if (modalContainer) {
-            modalContainer.classList.remove('flex');
-            modalContainer.classList.add('hidden');
-        }
-    }
-
-    function displayError(message) {
-        const errorMessageEl = document.getElementById('errorMessage');
-        const errorDisplayEl = document.getElementById('errorDisplay');
-        if (errorMessageEl && errorDisplayEl) {
-            errorMessageEl.textContent = message;
-            errorDisplayEl.classList.remove('hidden');
-        }
-    }
-
-    function clearError() {
-        const errorDisplayEl = document.getElementById('errorDisplay');
-        if (errorDisplayEl) {
-            errorDisplayEl.classList.add('hidden');
-        }
-    }
-
-    /**
-     * Generic fetch wrapper for Apps Script GET requests.
-     */
-    async function fetchScriptData(action, params = {}) {
-        if (SCRIPT_URL === "YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE") {
-             displayError("Please update the SCRIPT_URL variable in the code with your deployed Apps Script URL.");
-             return null;
-        }
-
-        const url = new URL(SCRIPT_URL);
-        url.searchParams.append('action', action);
-        
-        // Append extra parameters for GET requests
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-
-        try {
-            const response = await fetch(url.toString());
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            if (data.status === 'error') {
-                throw new Error(data.message);
-            }
-            clearError();
-            return data;
-        } catch (error) {
-            console.error(`Fetch error for action ${action}:`, error);
-            displayError(`Data retrieval failed (${action}): ${error.message}`);
-            return null;
-        }
-    }
-
-    /**
-     * Generic fetch wrapper for Apps Script POST requests.
-     */
-    async function postScriptData(payload) {
-        if (SCRIPT_URL === "YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE") {
-             displayError("Please update the SCRIPT_URL variable in the code with your deployed Apps Script URL.");
-             return null;
-        }
-        
-        try {
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             
-            const data = await response.json();
-            if (data.status === 'error') {
-                throw new Error(data.message);
-            }
-            clearError();
-            return data;
-        } catch (error) {
-            console.error(`Post error for action ${payload.action}:`, error);
-            displayError(`Data submission failed (${payload.action}): ${error.message}`);
-            return null;
-        }
-    }
-
-    // --- INITIALIZATION & AUTHENTICATION ---
-
-    async function initApp() {
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        if (loadingIndicator) {
-            loadingIndicator.classList.remove('hidden');
-        }
-        
-        const authData = await fetchScriptData('checkAuth');
-        
-        if (authData) {
-            userRole = authData.role;
-            userEmail = authData.userEmail;
-            
-            // Set initial view based on role
-            if (userRole === 'admin' || userRole === 'master_admin') {
-                currentView = 'Admin';
-            } else if (userRole === 'driver') {
-                currentView = 'Driver';
-            } else {
-                currentView = 'Public';
-            }
-        } else {
-            // Default to guest/public view on auth failure
-            userRole = 'none';
-            userEmail = 'N/A';
-            currentView = 'Public';
-        }
-        
-        await fetchData(currentView); // Fetch initial data
-        renderApp();
-        
-        if (loadingIndicator) {
-            loadingIndicator.classList.add('hidden');
-        }
-    }
-
-    // --- DATA FETCHING ---
-
-    async function fetchData(view) {
-        if (view === 'Admin' && (userRole === 'admin' || userRole === 'master_admin')) {
-            const [ridesData, driversData] = await Promise.all([
-                fetchScriptData('getAdminDashboard'),
-                fetchScriptData('getAvailableDrivers')
-            ]);
-            
-            rides = ridesData ? ridesData.data : [];
-            availableDrivers = driversData ? driversData.drivers : [];
-
-        } else if (view === 'Driver' && userRole === 'driver') {
-            const ridesData = await fetchScriptData('GET_DRIVER_RIDES');
-            rides = ridesData ? ridesData.rides : [];
-        } 
-        
-        // Public view doesn't require data fetching
-        renderContent(view);
-    }
-
-    // --- HANDLERS ---
-
-    async function handleBookRide(event) {
-        event.preventDefault();
-        const form = event.target;
-        const button = form.querySelector('button[type="submit"]');
-
-        const rideData = {
-            action: 'BOOK_RIDE',
-            name: form.name.value,
-            phone: form.phone.value,
-            pickup: form.pickup.value,
-            dropoff: form.dropoff.value,
-            passengers: form.passengers.value,
-            children: form.children.checked,
-            pets: form.pets.checked,
-            luggage: form.luggage.checked,
-            assistanceWaiver: form.waiver.checked
-        };
-        
-        button.disabled = true;
-        button.textContent = 'Booking...';
-
-        const response = await postScriptData(rideData);
-
-        if (response) {
-            form.reset();
-            showModal("Success!", response.message, [{ text: "Close", className: "bg-green-500 text-white", handler: () => {} }]);
-        }
-        
-        button.disabled = false;
-        button.textContent = 'Book Ride';
-    }
-    
-    // Admin: Assign Ride
-    async function handleAssignRide(rideId, driverEmail) {
-        if (userRole !== 'admin' && userRole !== 'master_admin') return;
-
-        const response = await postScriptData({
-            action: 'ASSIGN_RIDE',
-            rideId: rideId,
-            driverEmail: driverEmail 
-        });
-
-        if (response) {
-            showModal("Success", response.message, [{ text: "OK", handler: () => fetchData('Admin') }]);
-        }
-    }
-
-    // Driver: Update Ride Status
-    async function handleUpdateRideStatus(rideId, newStatus) {
-        if (userRole !== 'driver') return;
-        
-        showModal(
-            "Confirm Status Change",
-            `Set ride ${rideId.substring(0, 6)}... status to "${newStatus}"?`,
-            [
-                { text: "Cancel", handler: () => {} },
-                { text: newStatus, className: "bg-red-500 text-white", handler: async () => {
-                    const response = await postScriptData({
-                        action: 'UPDATE_RIDE_STATUS',
-                        rideId: rideId,
-                        newStatus: newStatus
-                    });
-            
-                    if (response) {
-                        showModal("Success", response.message, [{ text: "Great!", className: "bg-green-500 text-white", handler: () => fetchData('Driver') }]);
-                    }
-                }}
-            ]
-        );
-    }
-
-    // --- RENDERING ---
-
-    function renderNav() {
-        const nav = document.getElementById('nav');
-        nav.innerHTML = '';
-        const views = [
-            { id: 'Public', label: 'Public Booking', roles: ['none', 'driver', 'admin', 'master_admin'] },
-            { id: 'Driver', label: 'Driver Dashboard', roles: ['driver'] },
-            { id: 'Admin', label: 'Admin Dashboard', roles: ['admin', 'master_admin'] }
-        ];
-
-        views.filter(v => v.roles.includes(userRole)).forEach(view => {
-            const button = document.createElement('button');
-            button.textContent = view.label;
-            button.className = `min-w-max px-4 py-2 font-semibold rounded-lg transition-colors text-sm ${currentView === view.id ? 'bg-red-500 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
-            button.onclick = async () => {
-                currentView = view.id;
-                await fetchData(view.id);
-                renderNav(); // Re-render to update active style
-            };
-            nav.appendChild(button);
-        });
-
-        // Update Auth Status display
-        let roleIcon;
-        let roleText;
-        if (userRole === 'master_admin') {
-            roleIcon = 'crown';
-            roleText = 'Master Admin';
-        } else if (userRole === 'admin') {
-            roleIcon = 'shield-check';
-            roleText = 'Admin';
-        } else if (userRole === 'driver') {
-            roleIcon = 'steering-wheel';
-            roleText = 'Driver';
-        } else {
-            roleIcon = 'user';
-            roleText = 'Guest';
-        }
-
-        const statusEl = document.getElementById('authStatus');
-        statusEl.innerHTML = `
-            <i data-lucide="${roleIcon}" class="icon-lg mr-2 text-red-500"></i>
-            <span class="text-sm">Role: <span class="font-bold capitalize">${roleText}</span> (${userEmail})</span>
-        `;
-        lucide.createIcons();
-    }
-
-    function renderContent(view) {
-        const content = document.getElementById('content');
-        content.innerHTML = '';
-        
-        switch (view) {
-            case 'Public':
-                content.innerHTML = renderPublicBooking();
-                const bookingForm = document.getElementById('bookingForm');
-                if (bookingForm) {
-                    bookingForm.onsubmit = handleBookRide;
-                }
-                break;
-            case 'Driver':
-                if (userRole === 'driver') {
-                    content.innerHTML = renderDriverDashboard();
-                    attachDriverHandlers();
-                } else {
-                    content.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-lg text-center text-gray-500 mt-8">Access Denied: Log in as a Driver.</div>`;
-                }
-                break;
-            case 'Admin':
-                if (userRole === 'admin' || userRole === 'master_admin') {
-                    content.innerHTML = renderAdminDashboard();
-                    attachAdminHandlers();
-                } else {
-                    content.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-lg text-center text-gray-500 mt-8">Access Denied: Log in as an Admin.</div>`;
-                }
-                break;
-        }
-        lucide.createIcons();
-    }
-
-    function renderPublicBooking() {
-        return `
-            <div class="bg-white shadow-xl rounded-xl p-6 sm:p-8">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Request A Ride</h2>
-                <form id="bookingForm" class="space-y-4">
-                    <input type="text" name="name" placeholder="Your Full Name" required 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                    <input type="tel" name="phone" placeholder="Phone Number" required 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                    <input type="text" name="pickup" placeholder="Pickup Location (e.g., 123 Main St)" required 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                    <input type="text" name="dropoff" placeholder="Dropoff Location" required 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+            <!-- Home View (Booking Form) -->
+            <div id="home-view" class="view">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Book a New Ride</h2>
+                <form id="bookingForm" class="space-y-4 bg-gray-50 p-6 rounded-lg shadow-inner">
+                    <input type="text" id="name" placeholder="Your Name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <input type="tel" id="phone" placeholder="Contact Phone" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="pickup" placeholder="Pickup Location (e.g., Address, Landmark)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="destination" placeholder="Destination Location" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <textarea id="notes" placeholder="Delivery/Ride Notes (e.g., large luggage, time constraints)" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
                     
-                    <div class="grid grid-cols-2 gap-4">
-                        <input type="number" name="passengers" placeholder="Number of Passengers" required min="1" value="1"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                    </div>
-                    
-                    <div class="space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                        <label class="flex items-center space-x-2"><input type="checkbox" name="children" class="rounded text-red-500 focus:ring-red-500"> <span>Traveling with Children?</span></label>
-                        <label class="flex items-center space-x-2"><input type="checkbox" name="pets" class="rounded text-red-500 focus:ring-red-500"> <span>Traveling with Pets?</span></label>
-                        <label class="flex items-center space-x-2"><input type="checkbox" name="luggage" class="rounded text-red-500 focus:ring-red-500"> <span>Large Luggage?</span></label>
-                    </div>
-
-                    <div class="p-3 border border-red-300 rounded-lg bg-red-50">
-                        <label class="flex items-center space-x-2 font-medium text-red-700">
-                            <input type="checkbox" name="waiver" required class="rounded text-red-500 focus:ring-red-500"> 
-                            <span>I agree to the Assistance Waiver (Required)</span>
-                        </label>
-                    </div>
-                    
-                    <button type="submit" 
-                            class="w-full bg-red-500 text-white font-bold p-3 rounded-lg hover:bg-red-600 transition-colors shadow-md">
-                        Book Ride
+                    <button type="submit" class="btn-primary w-full text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg flex items-center justify-center">
+                        <!-- PlusCircle Icon SVG -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                        Submit Booking
                     </button>
                 </form>
             </div>
-        `;
-    }
 
-    function renderDriverDashboard() {
-        // Rides: [0] ID, [1] Time, [2] Name, [3] Phone, [4] Pickup, [5] Dropoff, [6] Driver, [7] Status
-        const driverRides = rides.filter(r => 
-            (r[7] === 'Assigned' || r[7] === 'Picked Up')
-        );
+            <!-- Driver View -->
+            <div id="driver-view" class="view hidden">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Your Assigned Rides</h2>
+                <div id="driverRidesList" class="space-y-4">
+                    <p class="text-center text-gray-500 p-4 border rounded-lg">No assigned rides currently. Check back soon!</p>
+                </div>
+            </div>
 
-        const cards = [
-            { title: "Assigned Rides", count: driverRides.filter(r => r[7] === 'Assigned').length, icon: 'list-checks', color: 'text-blue-500' },
-            { title: "Picked Up", count: driverRides.filter(r => r[7] === 'Picked Up').length, icon: 'users-2', color: 'text-yellow-500' },
-            { title: "My Email", content: userEmail, icon: 'mail', color: 'text-red-500' }
+            <!-- Admin View -->
+            <div id="admin-view" class="view hidden">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Dispatch Panel</h2>
+
+                <h3 class="text-xl font-medium mb-3 text-gray-600">Pending Bookings</h3>
+                <div id="pendingBookingsList" class="space-y-4 mb-8">
+                    <p class="text-center text-gray-500 p-4 border rounded-lg">No new bookings requiring assignment.</p>
+                </div>
+
+                <h3 class="text-xl font-medium mb-3 text-gray-600">Active Drivers</h3>
+                <select id="driverSelector" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="" disabled selected>Select a Driver</option>
+                    <!-- Driver options will be populated here -->
+                </select>
+            </div>
+
+            <!-- Settings View (The one that was opened by the user) -->
+            <div id="settings-view" class="view hidden">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Settings</h2>
+                <div class="space-y-4 bg-gray-50 p-6 rounded-lg shadow-inner">
+                    <p class="text-lg font-medium text-gray-600 mb-2">Select Your Role</p>
+                    <select id="roleSelector" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <option value="public">Public User (Booker)</option>
+                        <option value="driver">Driver</option>
+                        <option value="admin">Admin / Dispatch</option>
+                    </select>
+                    
+                    <p class="text-lg font-medium text-gray-600 mt-6 mb-2">Deployment Status</p>
+                    <p class="text-sm text-gray-500">Make sure this URL is correct to enable communication with Google Sheets.</p>
+                    <input type="text" id="scriptUrlInput" placeholder="Your Apps Script URL" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" readonly>
+                    
+                    <button id="saveSettingsButton" class="btn-primary w-full text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg">
+                        Save Role
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // *** REPLACE THIS PLACEHOLDER URL WITH YOUR DEPLOYED GOOGLE APPS SCRIPT URL ***
+        // THIS IS THE MOST LIKELY REASON FOR CONNECTION FAILURE.
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyyIBp_A4nezssn33cm2oNHNaGftrvv5F5QvSjslZSTkL9u1BpfIVmdkQxhoRqYg6HFkg/exec"; 
+        // Example Driver IDs (use this for testing the Admin Assign function)
+        const MOCK_DRIVERS = [
+            { id: "D-001", name: "Alice Johnson" },
+            { id: "D-002", name: "Bob Smith" },
+            { id: "D-003", name: "Charlie Brown" }
         ];
 
-        return `
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Driver Dashboard</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                ${cards.map(card => `
-                    <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col justify-between dashboard-card">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">${card.title}</p>
-                            <h3 class="text-3xl font-extrabold text-gray-900 mt-1 truncate">${card.count !== undefined ? card.count : card.content}</h3>
-                        </div>
-                        <div class="flex justify-end"><i data-lucide="${card.icon}" class="icon-lg ${card.color} w-8 h-8 mt-2"></i></div>
-                    </div>
-                `).join('')}
-            </div>
+        // --- GLOBAL STATE & DOM ELEMENTS ---
+        const app = document.getElementById('app');
+        const contentArea = document.getElementById('contentArea');
+        const mainTabs = document.getElementById('mainTabs');
+        const roleSelector = document.getElementById('roleSelector');
+        const scriptUrlInput = document.getElementById('scriptUrlInput');
+        const settingsButton = document.getElementById('settingsButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const statusMessage = document.getElementById('statusMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const driverSelector = document.getElementById('driverSelector');
+        const driverRidesList = document.getElementById('driverRidesList');
+        const pendingBookingsList = document.getElementById('pendingBookingsList');
 
-            <div class="bg-white shadow-xl rounded-xl p-6">
-                <h3 class="text-2xl font-bold mb-4 border-b pb-2">My Active Rides</h3>
-                <div class="table-container">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50 sticky top-0">
-                            <tr>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Rider & Details</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Locations</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            ${driverRides.length > 0 ? driverRides.map(r => `
-                                <tr class="hover:bg-gray-50">
-                                    <td class="p-3 text-sm font-medium text-gray-900">${r[0].substring(0, 6)}</td>
-                                    <td class="p-3 text-sm text-gray-500">
-                                        <div class="font-semibold text-gray-700">${r[2]}</div>
-                                        <div class="text-xs text-gray-500">${r[3]}</div>
-                                        <div class="text-xs mt-1 text-red-600 font-medium">
-                                            P: ${r[8]} / C: ${r[9] ? 'Yes' : 'No'} / Pet: ${r[10] ? 'Yes' : 'No'}
-                                        </div>
-                                    </td>
-                                    <td class="p-3 text-sm text-gray-500">
-                                        <div class="font-semibold text-gray-700">P/U: ${r[4]}</div>
-                                        <div class="text-xs text-red-500">D/O: ${r[5]}</div>
-                                    </td>
-                                    <td class="p-3">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            ${r[7] === 'Assigned' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">
-                                            ${r[7]}
-                                        </span>
-                                    </td>
-                                    <td class="p-3 text-sm font-medium">
-                                        <div class="flex flex-col space-y-1">
-                                            ${r[7] === 'Assigned' ? 
-                                                `<button data-ride-id="${r[0]}" data-status="Picked Up" class="status-btn text-white bg-yellow-500 hover:bg-yellow-600 p-2 rounded-lg text-xs">Picked Up</button>` : 
-                                                `<button data-ride-id="${r[0]}" data-status="Completed" class="status-btn text-white bg-green-500 hover:bg-green-600 p-2 rounded-lg text-xs">Complete</button>`
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            `).join('') : `
-                                <tr><td colspan="5" class="p-6 text-center text-gray-500">No active rides assigned to you.</td></tr>
-                            `}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    }
+        let currentRole = localStorage.getItem('userRole') || 'public';
+        let currentView = 'home-view';
+        let pendingBookings = [];
+        let activeDriverId = MOCK_DRIVERS[0].id; // Default driver for Admin assignment
 
-    function attachDriverHandlers() {
-        document.querySelectorAll('.status-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const rideId = btn.dataset.rideId;
-                const newStatus = btn.dataset.status;
-                handleUpdateRideStatus(rideId, newStatus);
+        // --- ICON LIBRARY (Embedded SVGs to fix Tracking Prevention) ---
+        const SVG_ICONS = {
+            'home': '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+            'plus-circle': '<circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/>',
+            'list-checks': '<path d="m3 16 2 2 2-2"/><path d="M7 16h14"/><path d="m3 11 2 2 2-2"/><path d="M7 11h14"/><path d="m3 6 2 2 2-2"/><path d="M7 6h14"/>',
+            'car': '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.6-.4-1-1-1h-1a2 2 0 0 0-2 2v2a2 2 0 0 1-2 2l-1 1h-6"/><path d="M10 17H5c-.6 0-1-.4-1-1v-3c0-.6.4-1 1-1h12a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h2"/><circle cx="7" cy="18" r="2"/><path d="M18 10h-1m-10 7h-1"/><path d="M10 17H5c-.6 0-1-.4-1-1v-3c0-.6.4-1 1-1h12a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h2"/>',
+            'user': '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+            'settings': '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 0-2 2h-.44a2 2 0 0 0-2 2v.44a2 2 0 0 0-2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2 2v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2h.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2v-.44a2 2 0 0 0 2-2h.44a2 2 0 0 0-2-2v-.44a2 2 0 0 0-2-2h-.44a2 2 0 0 0-2-2v-.44a2 2 0 0 0-2-2h-.44a2 2 0 0 0-2-2v-.44a2 2 0 0 0-2-2zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>',
+            'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+            'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+            'loader-circle': '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>'
+        };
+
+        const renderIcon = (name, className = 'w-5 h-5') => {
+            const path = SVG_ICONS[name.toLowerCase()] || '';
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${className}">${path}</svg>`;
+        };
+
+        // --- UTILITY FUNCTIONS ---
+
+        /** Shows a temporary status message (success/info) */
+        const displayStatus = (message, isError = false) => {
+            // Safety check
+            if (!statusMessage || !errorMessage) return;
+
+            statusMessage.textContent = message;
+            statusMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+
+            if (isError) {
+                statusMessage.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                statusMessage.classList.add('bg-green-100', 'text-green-700');
+            }
+            statusMessage.classList.remove('hidden');
+
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        };
+
+        /** Shows a persistent error message */
+        const displayError = (message) => {
+            if (errorMessage) {
+                errorMessage.innerHTML = `${renderIcon('x', 'w-5 h-5 inline mr-2')}${message}`;
+                errorMessage.classList.remove('hidden');
+            }
+        };
+
+        /** Clears the persistent error message */
+        const clearError = () => {
+            if (errorMessage) {
+                errorMessage.classList.add('hidden');
+                errorMessage.textContent = '';
+            }
+        };
+
+        /** Shows/hides the main loading indicator */
+        const toggleLoading = (show) => {
+            if (loadingIndicator) {
+                loadingIndicator.classList.toggle('hidden', !show);
+                contentArea.classList.toggle('opacity-50', show);
+                contentArea.classList.toggle('pointer-events-none', show);
+            }
+        };
+
+        // --- NAVIGATION & ROLE HANDLING ---
+
+        /** Updates the visibility of views based on the selected role and current view */
+        const updateView = (viewId = currentView) => {
+            currentView = viewId;
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.add('hidden');
             });
-        });
-    }
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+            }
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            const activeButton = document.querySelector(`.tab-button[data-view-id="${viewId}"]`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+            // If we switch to a data-driven view, trigger a refresh
+            if (currentRole === 'driver' && viewId === 'driver-view') {
+                fetchDriverRides();
+            }
+            if (currentRole === 'admin' && viewId === 'admin-view') {
+                fetchPendingBookings();
+            }
+        };
 
-    function renderAdminDashboard() {
-        // Rides: [0] ID, [7] Status, [2] Name, [3] Phone, [4] Pickup, [5] Dropoff, [1] Time
-        const allPendingRides = rides.filter(r => r[7] === 'Pending');
-        const activeDrivers = availableDrivers.filter(d => d.isAvailable);
-        const assignedRidesCount = rides.filter(r => r[7] === 'Assigned').length;
+        /** Sets up the navigation tabs based on the current role */
+        const setupTabs = () => {
+            const tabs = {
+                'public': [
+                    { id: 'home-view', label: 'Book Ride', icon: 'home' }
+                ],
+                'driver': [
+                    { id: 'driver-view', label: 'My Rides', icon: 'car' }
+                ],
+                'admin': [
+                    { id: 'admin-view', label: 'Dispatch', icon: 'list-checks' }
+                ]
+            };
 
-        return `
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Admin Dashboard</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-xl shadow-lg dashboard-card">
-                    <p class="text-sm font-medium text-gray-500">Pending Requests</p>
-                    <h3 class="text-3xl font-extrabold text-red-500 mt-1">${allPendingRides.length}</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg dashboard-card">
-                    <p class="text-sm font-medium text-gray-500">Active Assignments</p>
-                    <h3 class="text-3xl font-extrabold text-blue-500 mt-1">${assignedRidesCount}</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg dashboard-card">
-                    <p class="text-sm font-medium text-gray-500">Available Drivers</p>
-                    <h3 class="text-3xl font-extrabold text-green-500 mt-1">${activeDrivers.length}</h3>
-                </div>
-            </div>
+            const roleTabs = tabs[currentRole] || tabs['public'];
+            mainTabs.innerHTML = '';
 
-            <div class="bg-white shadow-xl rounded-xl p-6">
-                <h3 class="text-2xl font-bold mb-4 border-b pb-2">Pending Rides for Assignment</h3>
-                <div class="table-container">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50 sticky top-0">
-                            <tr>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">ID / Time</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Rider Info</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Locations</th>
-                                <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Assign To</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            ${allPendingRides.length > 0 ? allPendingRides.map(r => `
-                                <tr class="hover:bg-gray-50">
-                                    <td class="p-3 text-sm font-medium text-gray-900">
-                                        ${r[0].substring(0, 6)}<br>
-                                        <span class="text-xs text-gray-500">${new Date(r[1]).toLocaleTimeString()}</span>
-                                    </td>
-                                    <td class="p-3 text-sm text-gray-500">
-                                        <div class="font-semibold text-gray-700">${r[2]} (${r[3]})</div>
-                                        <div class="text-xs mt-1 text-red-600 font-medium">
-                                            P: ${r[8]} / C: ${r[9] ? 'Y' : 'N'} / Pet: ${r[10] ? 'Y' : 'N'}
-                                        </div>
-                                    </td>
-                                    <td class="p-3 text-sm text-gray-500">
-                                        <div class="font-semibold text-gray-700">P/U: ${r[4]}</div>
-                                        <div class="text-xs text-red-500">D/O: ${r[5]}</div>
-                                    </td>
-                                    <td class="p-3 text-sm">
-                                        <select data-ride-id="${r[0]}" class="driver-select border border-gray-300 rounded-lg p-1 text-xs">
-                                            <option value="">Select Driver</option>
-                                            ${activeDrivers.map(d => `<option value="${d.email}">${d.name} (${d.email})</option>`).join('')}
-                                        </select>
-                                    </td>
-                                </tr>
-                            `).join('') : `
-                                <tr><td colspan="4" class="p-6 text-center text-gray-500">No pending rides found.</td></tr>
-                            `}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    }
+            roleTabs.forEach(tab => {
+                const button = document.createElement('button');
+                button.className = `tab-button flex-1 p-3 text-center transition text-gray-600 flex items-center justify-center`;
+                button.setAttribute('data-view-id', tab.id);
+                button.innerHTML = `${renderIcon(tab.icon, 'w-5 h-5 mr-2')} ${tab.label}`;
+                button.addEventListener('click', () => updateView(tab.id));
+                mainTabs.appendChild(button);
+            });
+            
+            // Set initial view
+            updateView(roleTabs[0].id);
+        };
 
-    function attachAdminHandlers() {
-        document.querySelectorAll('.driver-select').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const rideId = e.target.dataset.rideId;
-                const driverEmail = e.target.value;
-                if (driverEmail) {
-                    handleAssignRide(rideId, driverEmail);
+        // --- APPS SCRIPT COMMUNICATION (Mocked fetch for clarity, add retry logic in deployment) ---
+
+        /** Generic handler for Apps Script communication */
+        const postData = async (action, data = {}) => {
+            clearError();
+            if (APPS_SCRIPT_URL === "YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE") {
+                displayError("Configuration Error: Please update the APPS_SCRIPT_URL with your actual deployment link.");
+                return { success: false, data: null, error: "URL not configured" };
+            }
+
+            const payload = { action, role: currentRole, ...data };
+            let responseData = { success: false, data: null, error: "Network or server error." };
+
+            toggleLoading(true);
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
                 }
+
+                responseData = await response.json();
+
+                if (!responseData.success) {
+                    displayError(`Operation failed: ${responseData.error || 'Unknown error from server.'}`);
+                }
+
+            } catch (error) {
+                console.error("Fetch failed:", error);
+                displayError(`Connection Error: Could not reach the Apps Script. Check the URL and deployment permissions. (${error.message})`);
+            } finally {
+                toggleLoading(false);
+            }
+            return responseData;
+        };
+
+        // --- CORE APPLICATION LOGIC ---
+
+        /** * Public User: Submits a new ride booking 
+         */
+        const handleBookingSubmit = async (e) => {
+            e.preventDefault();
+            const formData = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                pickup: document.getElementById('pickup').value,
+                destination: document.getElementById('destination').value,
+                notes: document.getElementById('notes').value
+            };
+
+            const result = await postData('bookNewRide', formData);
+
+            if (result.success) {
+                displayStatus(`Booking submitted successfully! Your tracking ID is: ${result.data.id}`);
+                e.target.reset(); // Clear form
+            }
+        };
+
+        // --- DRIVER VIEW LOGIC ---
+
+        /** * Driver: Fetches and displays their assigned rides 
+         */
+        const fetchDriverRides = async () => {
+            driverRidesList.innerHTML = `<p class="text-center text-gray-500 p-4">${renderIcon('loader-circle', 'w-5 h-5 inline mr-2 animate-spin')} Loading assigned rides...</p>`;
+            
+            // In a real app, 'data' would contain the driver's ID
+            const driverId = activeDriverId; // Using the mock driver ID for demo/testing
+            const result = await postData('getDriverRides', { driverId }); 
+
+            if (result.success && result.data && result.data.length > 0) {
+                driverRidesList.innerHTML = result.data.map(ride => `
+                    <div class="bg-white p-4 rounded-lg border shadow-sm">
+                        <p class="font-bold text-gray-700">ID: ${ride.id} - Status: <span class="text-sm font-semibold p-1 rounded-full ${ride.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${ride.status}</span></p>
+                        <p class="text-sm text-gray-500 truncate">From: ${ride.pickup} to ${ride.destination}</p>
+                        <p class="text-sm mt-2">Booked by: ${ride.name} (${ride.phone})</p>
+                        <div class="flex space-x-2 mt-3">
+                            ${ride.status === 'Assigned' ? `<button data-id="${ride.id}" data-status="In Progress" class="update-driver-status btn-primary text-white text-xs py-2 px-3 rounded-lg flex-1">Start Ride</button>` : ''}
+                            ${ride.status === 'In Progress' ? `<button data-id="${ride.id}" data-status="Completed" class="update-driver-status btn-secondary text-white text-xs py-2 px-3 rounded-lg flex-1">Complete Ride</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                document.querySelectorAll('.update-driver-status').forEach(btn => {
+                    btn.addEventListener('click', handleDriverStatusUpdate);
+                });
+            } else {
+                driverRidesList.innerHTML = '<p class="text-center text-gray-500 p-4 border rounded-lg">No assigned rides currently. Check back soon!</p>';
+            }
+        };
+
+        /**
+         * Driver: Handles updating the status of a specific ride.
+         */
+        const handleDriverStatusUpdate = async (e) => {
+            const rideId = e.target.getAttribute('data-id');
+            const newStatus = e.target.getAttribute('data-status');
+
+            const result = await postData('updateRideStatus', { rideId, newStatus });
+
+            if (result.success) {
+                displayStatus(`Ride ${rideId} status updated to: ${newStatus}`);
+                fetchDriverRides(); // Refresh the list
+            }
+        };
+
+
+        // --- ADMIN VIEW LOGIC ---
+
+        /** * Admin: Fetches and displays pending bookings 
+         */
+        const fetchPendingBookings = async () => {
+            pendingBookingsList.innerHTML = `<p class="text-center text-gray-500 p-4">${renderIcon('loader-circle', 'w-5 h-5 inline mr-2 animate-spin')} Loading pending bookings...</p>`;
+            
+            const result = await postData('getPendingBookings'); 
+
+            if (result.success && result.data) {
+                pendingBookings = result.data; // Store globally for assignment
+                renderPendingBookings();
+            } else {
+                pendingBookingsList.innerHTML = '<p class="text-center text-gray-500 p-4 border rounded-lg">No new bookings requiring assignment.</p>';
+            }
+        };
+
+        /** Renders the list of pending bookings */
+        const renderPendingBookings = () => {
+            if (pendingBookings.length === 0) {
+                pendingBookingsList.innerHTML = '<p class="text-center text-gray-500 p-4 border rounded-lg">No new bookings requiring assignment.</p>';
+                return;
+            }
+
+            pendingBookingsList.innerHTML = pendingBookings.map(ride => `
+                <div class="bg-white p-4 rounded-lg border shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-gray-700">#${ride.id} - ${ride.pickup}</p>
+                        <p class="text-sm text-gray-500">To: ${ride.destination}</p>
+                        <p class="text-xs text-gray-400 mt-1">Booked by: ${ride.name}</p>
+                    </div>
+                    <button data-id="${ride.id}" class="assign-button btn-secondary text-white text-xs py-2 px-3 rounded-lg shadow-md hover:shadow-lg transition">
+                        Assign
+                        ${renderIcon('chevron-right', 'w-4 h-4 ml-1 inline')}
+                    </button>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.assign-button').forEach(btn => {
+                btn.addEventListener('click', handleAssignBooking);
             });
-        });
-    }
+        };
 
-    function renderApp() {
-        renderNav();
-        // The first call to fetchData already calls renderContent
-    }
+        /**
+         * Admin: Handles assigning a booking to the currently selected driver.
+         */
+        const handleAssignBooking = async (e) => {
+            const rideId = e.target.getAttribute('data-id');
+            const driverId = driverSelector.value;
+            const driverName = driverSelector.options[driverSelector.selectedIndex].text;
 
-    // --- START APPLICATION ---
-    window.onload = initApp;
+            if (!driverId) {
+                displayError("Please select a driver from the list before assigning.");
+                return;
+            }
 
-</script>
+            const result = await postData('assignBooking', { rideId, driverId, driverName });
+
+            if (result.success) {
+                displayStatus(`Booking ${rideId} assigned to ${driverName} (${driverId})`);
+                // Remove the assigned ride from the local list and re-render
+                pendingBookings = pendingBookings.filter(ride => ride.id !== rideId);
+                renderPendingBookings();
+            }
+        };
+
+        // --- INITIALIZATION ---
+
+        const initApp = () => {
+            // 1. Populate Driver Selector (Admin View)
+            MOCK_DRIVERS.forEach(driver => {
+                const option = document.createElement('option');
+                option.value = driver.id;
+                option.textContent = driver.name;
+                driverSelector.appendChild(option);
+            });
+            driverSelector.addEventListener('change', (e) => activeDriverId = e.target.value);
+            // Pre-select the first driver for demo
+            if (MOCK_DRIVERS.length > 0) {
+                 driverSelector.value = MOCK_DRIVERS[0].id;
+                 activeDriverId = MOCK_DRIVERS[0].id;
+            }
+
+
+            // 2. Load Role and Setup Tabs
+            roleSelector.value = currentRole;
+            setupTabs();
+            scriptUrlInput.value = APPS_SCRIPT_URL; // Show the user their URL setting
+
+            // 3. Attach Event Listeners
+            if (document.getElementById('bookingForm')) {
+                document.getElementById('bookingForm').addEventListener('submit', handleBookingSubmit);
+            }
+            if (settingsButton) {
+                settingsButton.addEventListener('click', () => updateView('settings-view'));
+            }
+            if (document.getElementById('saveSettingsButton')) {
+                document.getElementById('saveSettingsButton').addEventListener('click', () => {
+                    const newRole = roleSelector.value;
+                    localStorage.setItem('userRole', newRole);
+                    currentRole = newRole;
+                    setupTabs();
+                    displayStatus(`Role set to: ${newRole.charAt(0).toUpperCase() + newRole.slice(1)}`);
+                });
+            }
+            
+            // 4. Initial Data Load based on Role
+            if (currentRole === 'driver') {
+                fetchDriverRides();
+            } else if (currentRole === 'admin') {
+                fetchPendingBookings();
+            }
+        };
+
+        // Initialize the application when the DOM is ready
+        window.addEventListener('load', initApp);
+    </script>
 </body>
 </html>
