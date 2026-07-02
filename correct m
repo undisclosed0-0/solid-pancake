@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dreamless Kingdom — Fractured Realm</title>
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #050308 0%, #000 70%);
+      color: #f5f0ff;
+      font-family: "Georgia", serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* Celestial background */
+    #scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at center, #141b3a 0%, #05030a 50%, #000 100%);
+      transition: filter 1.5s ease, transform 1.5s ease, background 1.5s ease;
+    }
+    #glyphs {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      background-image: url('glyphs.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* App shell */
+    #app {
+      position: relative;
+      z-index: 1;
+      background: rgba(8, 6, 16, 0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(190,160,255,0.35);
+      border-radius: 12px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+      padding: 1.5rem 2rem 80px;
+      max-width: 1100px;
+      margin: 2rem auto;
+    }
+
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    #game-title {
+      font-size: 1.4rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    #header-meta {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+    #header-meta span + span {
+      margin-left: 0.75rem;
+    }
+
+    .ceremonial-divider {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin: 16px 0 24px;
+      width: 100%;
+      padding: 0 5%;
+    }
+    .ceremonial-divider span {
+      flex: 1;
+      margin: 0 2px;
+      background: linear-gradient(to top, #3b3f7a, #e0e6ff);
+      border-radius: 2px;
+      box-shadow: 0 0 6px rgba(180,190,255,0.6);
+    }
+    .ceremonial-divider span:nth-child(10) { height: 32px; }
+    .ceremonial-divider span:nth-child(9),
+    .ceremonial-divider span:nth-child(11) { height: 26px; }
+    .ceremonial-divider span:nth-child(8),
+    .ceremonial-divider span:nth-child(12) { height: 22px; }
+    .ceremonial-divider span:nth-child(7),
+    .ceremonial-divider span:nth-child(13) { height: 18px; }
+    .ceremonial-divider span:nth-child(6),
+    .ceremonial-divider span:nth-child(14) { height: 14px; }
+    .ceremonial-divider span:nth-child(5),
+    .ceremonial-divider span:nth-child(15) { height: 10px; }
+    .ceremonial-divider span:nth-child(4),
+    .ceremonial-divider span:nth-child(16) { height: 8px; }
+    .ceremonial-divider span:nth-child(3),
+    .ceremonial-divider span:nth-child(17) { height: 6px; }
+    .ceremonial-divider span:nth-child(2),
+    .ceremonial-divider span:nth-child(18) { height: 4px; }
+    .ceremonial-divider span:nth-child(1),
+    .ceremonial-divider span:nth-child(19) { height: 2px; }
+
+    #story-feed {
+      min-height: 150px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      background: radial-gradient(circle at top left, rgba(40, 30, 70, 0.7), rgba(10, 8, 20, 0.95));
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-top: 0.75rem;
+    }
+    #story-feed h2 {
+      margin: 0 0 0.4rem;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    /* Arcane disc above compass */
+    #sky-row {
+      margin-top: 0.75rem;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    #mapCard {
+      display: flex;
+      flex-direction: column;
+      height: 260px;
+      min-height: 220px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: radial-gradient(circle at center,#141b3a,#050814);
+      border: 2px solid rgba(220,230,255,0.25);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    }
+    #mapViewport {
+      flex: 1 1 auto;
+      padding: 6px;
+    }
+    #dk-map {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #1b2348 0%, #05030a 60%, #000 100%);
+      transition: transform 0.8s ease;
+      box-shadow: 0 0 24px rgba(120,140,255,0.8);
+    }
+
+    #dk-map-fog {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
+      animation: dkFogDrift 18s linear infinite;
+      filter: blur(10px);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    @keyframes dkFogDrift {
+      from { transform: translateX(-3%) translateY(2%); }
+      to   { transform: translateX(3%) translateY(-2%); }
+    }
+
+    #dk-map-runes {
+      position: absolute;
+      inset: 0;
+      background-image: url('glyphs.png');
+      background-size: 140%;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.25;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    #dk-map-nodes {
+      position: absolute;
+      inset: 0;
+    }
+    .dk-node {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(200,210,255,0.9);
+      box-shadow: 0 0 10px rgba(200,210,255,1);
+      animation: dkNodeFloat 6s ease-in-out infinite;
+    }
+    @keyframes dkNodeFloat {
+      0%,100% { transform: translateY(0px); }
+      50%     { transform: translateY(-6px); }
+    }
+    .dk-node.treasure {
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 0 12px rgba(255,255,255,1);
+    }
+    .dk-node.quest {
+      border: 2px solid rgba(220,230,255,0.9);
+    }
+    .dk-node.pvp {
+      background: rgba(255,80,80,0.9);
+      box-shadow: 0 0 12px rgba(255,80,80,1);
+    }
+    .dk-node.merchant {
+      background: rgba(140,190,255,0.9);
+      box-shadow: 0 0 12px rgba(140,190,255,1);
+    }
+
+    #dk-map-player {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(180,255,240,0.95);
+      box-shadow: 0 0 16px rgba(180,255,240,1);
+      transform: translate(-50%, -50%);
+      transition: left 0.8s ease, top 0.8s ease;
+      pointer-events: none;
+    }
+
+    .dk-firefly {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #e0e6ff, transparent);
+      animation: dkFireflyDrift 6s linear infinite;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+    @keyframes dkFireflyDrift {
+      from { transform: translateY(0) translateX(0); opacity: 0.8; }
+      to   { transform: translateY(-120px) translateX(20px); opacity: 0; }
+    }
+
+    #dk-crest {
+      position: absolute;
+      inset: 10%;
+      border-radius: 50%;
+      border: 2px dashed rgba(220,230,255,0.6);
+      box-shadow: 0 0 18px rgba(220,230,255,0.7);
+      opacity: 0;
+      pointer-events: none;
+    }
+    #dk-crest::before,
+    #dk-crest::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(220,230,255,0.9);
+      width: 100%;
+      height: 100%;
+      clip-path: polygon(0 0, 50% 0, 50% 50%, 0 50%);
+    }
+    #dk-crest::after {
+      clip-path: polygon(50% 50%, 100% 50%, 100% 100%, 50% 100%);
+    }
+
+    @keyframes dkCrestBurst {
+      0%   { opacity: 0; transform: scale(0.8); }
+      50%  { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+
+    /* Compass + director side */
+    #compass-panel {
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(12, 10, 24, 0.95);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    #compass-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 0.35rem;
+    }
+    #compass-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.1rem;
+      margin-top: 0.25rem;
+      font-family: "Courier New", monospace;
+    }
+    .compass-cell {
+      height: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.3;
+    }
+    .compass-dir { font-weight: bold; }
+    .compass-current {
+      color: #e0e6ff;
+      text-shadow: 0 0 6px rgba(220,230,255,0.9);
+      opacity: 1;
+    }
+    .compass-seen {
+      opacity: 0.8;
+    }
+    #compass-text {
+      margin-top: 0.35rem;
+      opacity: 0.8;
+      min-height: 1.2rem;
+    }
+
+    #log-panel {
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(10, 8, 20, 0.96);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 160px;
+      max-height: 260px;
+      margin-top: 0.75rem;
+    }
+    #log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.25rem;
+    }
+    #log-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+    #log-tabs {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+    #log-tabs span {
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+    #log-tabs span.active {
+      color: #e0e6ff;
+      text-decoration: underline;
+      opacity: 1;
+    }
+    #log-body {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 0.25rem;
+      padding-right: 0.25rem;
+    }
+    .log-line { margin-bottom: 0.15rem; white-space: pre-wrap; }
+    .log-line.system { color: #9b8ad8; }
+    .log-line.command { color: #c0ffc0; }
+    .log-line.world { color: #f0e4ff; }
+    .log-line.board { color: #ffd9a0; }
+
+    #console-panel {
+      margin-top: 0.4rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid rgba(120, 100, 190, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.9rem;
+    }
+    #console-label { color: #9b8ad8; }
+    #console-input {
+      flex: 1;
+      background: rgba(8, 6, 16, 0.95);
+      border-radius: 4px;
+      border: 1px solid rgba(150, 130, 230, 0.6);
+      color: #f5f0ff;
+      padding: 0.35rem 0.5rem;
+      outline: none;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+    #console-input:focus {
+      box-shadow: 0 0 12px rgba(180, 150, 255, 0.8);
+    }
+    #console-hint {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-left: 0.25rem;
+    }
+
+    /* Director panel */
+    #director-panel {
+      position: fixed;
+      right: 16px;
+      top: 16px;
+      background: rgba(10,5,25,0.95);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      font-size: 0.8rem;
+      z-index: 2000;
+    }
+    #director-panel.hidden { display: none; }
+    #director-panel h3 {
+      margin: 0 0 6px;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #director-panel label {
+      display: block;
+      margin-bottom: 4px;
+    }
+    #director-panel button {
+      margin-top: 6px;
+      margin-right: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: none;
+      background: #3b2b4f;
+      color: #f5f0ff;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    /* Vitals widget */
+    #vitals-widget {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      background: radial-gradient(circle at top, #141b3a, #050814);
+      border-radius: 10px;
+      border: 1px solid rgba(220,230,255,0.5);
+      box-shadow: 0 0 18px rgba(120,140,255,0.8);
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      z-index: 1900;
+      display: none;
+    }
+    #vitals-widget h4 {
+      margin: 0 0 4px;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #vitals-widget ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #vitals-widget li {
+      margin-bottom: 2px;
+    }
+
+    /* Mini-map widget */
+    #minimap-widget {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center,#141b3a,#050814);
+      border: 1px solid rgba(220,230,255,0.5);
+      box-shadow: 0 0 18px rgba(120,140,255,0.8);
+      overflow: hidden;
+      z-index: 1900;
+      display: none;
+    }
+    #minimap-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    .minimap-node {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(220,230,255,0.9);
+    }
+
+    @media (max-width: 900px) {
+      #app {
+        margin: 0.5rem;
+        height: calc(100dvh - 1rem);
+      }
+      #sky-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scene"></div>
+  <div id="glyphs"></div>
+  <div id="flash"></div>
+
+  <div id="app">
+    <header id="header">
+      <div id="game-title">Dreamless Kingdom — Fractured Realm</div>
+      <div id="header-meta">
+        <span id="meta-location">Celestial Forest</span>
+        <span id="meta-time">Nightfall</span>
+      </div>
+    </header>
+
+    <div class="ceremonial-divider">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <section id="story-feed">
+      <h2 id="story-title">The Forest at the Edge of Memory</h2>
+      <div id="story-body"></div>
+    </section>
+
+    <section id="sky-row">
+      <div id="mapCard">
+        <div id="mapViewport">
+          <div id="dk-map">
+            <div id="dk-map-fog"></div>
+            <div id="dk-map-runes"></div>
+            <div id="dk-map-nodes"></div>
+            <div id="dk-map-player"></div>
+            <div id="dk-crest"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div id="compass-panel">
+          <div id="compass-title">Ground Compass</div>
+          <div id="compass-grid">
+            <div class="compass-cell compass-dir diag" data-dir="NW" data-diag="true">NW</div>
+            <div class="compass-cell compass-dir" data-dir="N">N</div>
+            <div class="compass-cell compass-dir diag" data-dir="NE" data-diag="true">NE</div>
+            <div class="compass-cell compass-dir" data-dir="W">W</div>
+            <div class="compass-cell" id="compass-center">✦</div>
+            <div class="compass-cell compass-dir" data-dir="E">E</div>
+            <div class="compass-cell compass-dir diag" data-dir="SW" data-diag="true">SW</div>
+            <div class="compass-cell compass-dir" data-dir="S">S</div>
+            <div class="compass-cell compass-dir diag" data-dir="SE" data-diag="true">SE</div>
+          </div>
+          <div id="compass-text"></div>
+        </div>
+
+        <section id="log-panel">
+          <div id="log-header">
+            <div id="log-title">Action Log</div>
+            <div id="log-tabs">
+              <span data-tab="log" class="active">log</span>
+              <span data-tab="board">board</span>
+            </div>
+          </div>
+          <div id="log-body"></div>
+
+          <section id="console-panel">
+            <div id="console-label">&gt;</div>
+            <input id="console-input" type="text" autocomplete="off" spellcheck="false" />
+            <div id="console-hint">Type "help" for commands (try "director", "vitals", "map")</div>
+          </section>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div id="director-panel" class="hidden">
+    <h3>Director</h3>
+    <label><input type="checkbox" id="toggleFog" checked> Fog</label>
+    <label><input type="checkbox" id="toggleFlash" checked> Flash</label>
+    <label><input type="checkbox" id="toggleFireflies" checked> Memory Sparks</label>
+    <label><input type="checkbox" id="toggleCrest" checked> Fractured Sigil</label>
+    <label><input type="checkbox" id="toggleRunes" checked> Runes</label>
+    <label><input type="checkbox" id="toggleRotation" checked> Disc Rotation</label>
+    <label><input type="checkbox" id="toggleShockwave" checked> Shockwave</label>
+    <button id="resetScene">Reset Scene</button>
+    <button id="triggerShockwave">Shockwave</button>
+  </div>
+
+  <div id="vitals-widget">
+    <h4>Vitals</h4>
+    <ul id="vitals-widget-list"></ul>
+  </div>
+
+  <div id="minimap-widget">
+    <div id="minimap-inner"></div>
+  </div>
+
+  <script>
+    const RPG = { Core:{}, Events:{}, DOM:{}, Racks:{}, boot:null };
+
+    (function(Core){
+      const State = {
+        nodeId: "start",
+        stats: { hp: 10, atk: 2, def: 1, insight: 0 },
+        flags: {},
+        inventory: [],
+        equipment: { weapon:null, armor:null, trinket:null },
+        gold: 10,
+        quests: { active:[], completed:[] },
+        lastDirection: null,
+        seenDiag: { nw:false, ne:false, sw:false, se:false }
+      };
+
+      const Nodes = {
+        start: {
+          id:"start", zone:"forest", type:"lore",
+          title:"Edge of Memory",
+          text:[
+            "Mist curls around your ankles.",
+            "Something important happened here, but the memory slips away."
+          ],
+          exits:{ n:"path", e:"brook" },
+          itemsOnGround:["rusty_sword"],
+          media:{ ambient:"forest_wind" }
+        },
+        path: {
+          id:"path", zone:"forest", type:"merchant",
+          title:"Whispering Path",
+          text:[
+            "Branches creak overhead.",
+            "Whispers drift between the trees, almost forming words."
+          ],
+          exits:{ s:"start", e:"clearing", w:"roots" },
+          merchant:"forest_vendor",
+          pvpAllowed:true,
+          media:{ ambient:"branch_creak" }
+        },
+        brook: {
+          id:"brook", zone:"forest", type:"lore",
+          title:"Silent Brook",
+          text:[
+            "Water flows without a sound.",
+            "Your reflection ripples into someone else's face."
+          ],
+          exits:{ w:"start", n:"den" },
+          itemsOnGround:["forest_coin"],
+          media:{ ambient:"deep_echo" }
+        },
+        clearing: {
+          id:"clearing", zone:"forest", type:"quest",
+          title:"Moonlit Clearing",
+          text:[
+            "Moonlight pools like silver paint.",
+            "Something glows faintly beneath the grass."
+          ],
+          exits:{ w:"path", n:"altar" },
+          itemsOnGround:["memory_charm"],
+          questTrigger:"forest_memory"
+        },
+        roots: {
+          id:"roots", zone:"forest", type:"pvp",
+          title:"Root-Snarl",
+          text:[
+            "Roots twist like sleeping serpents.",
+            "A faint heartbeat pulses beneath the soil."
+          ],
+          exits:{ e:"path", n:"altar" },
+          pvpAllowed:true
+        },
+        altar: {
+          id:"altar", zone:"forest", type:"lore",
+          title:"Forgotten Altar",
+          text:[
+            "Stone worn smooth by centuries.",
+            "A memory waits here, patient and heavy."
+          ],
+          exits:{ s:"clearing", w:"roots" },
+          media:{ ambient:"deep_echo" },
+          videoCutscene:"memory_flash",
+          questComplete:"forest_memory"
+        }
+      };
+
+      Core.getState = () => State;
+      Core.getNode = id => Nodes[id];
+      Core.getCurrentNode = () => Core.getNode(State.nodeId);
+      Core.Nodes = Nodes;
+
+      Core.move = dir => {
+        const node = Core.getCurrentNode();
+        const destId = node.exits?.[dir];
+        if (!destId) return RPG.Events.emit("log", `You cannot go ${dir} from here.`);
+        State.nodeId = destId;
+        State.lastDirection = dir;
+        RPG.Events.emit("node:enter", Core.getCurrentNode());
+      };
+    })(RPG.Core);
+
+    (function(Events){
+      const listeners = {};
+      Events.on = (t,f) => (listeners[t] ||= []).push(f);
+      Events.emit = (t,p) => (listeners[t] || []).forEach(fn => fn(p));
+    })(RPG.Events);
+
+    (function(DOM,Events,Core){
+      DOM.q = sel => document.querySelector(sel);
+
+      const logBuffer = [];
+      const boardBuffer = [];
+
+      Events.on("log", msg => {
+        logBuffer.push(`<div class="log-line world">${msg}</div>`);
+        const body = DOM.q("#log-body");
+        const active = document.querySelector("#log-tabs span.active")?.dataset.tab || "log";
+        if (active === "log") body.innerHTML = logBuffer.join("");
+        body.scrollTop = body.scrollHeight;
+      });
+
+      Events.on("board", msg => {
+        boardBuffer.push(`<div class="log-line board">${msg}</div>`);
+        const body = DOM.q("#log-body");
+        const active = document.querySelector("#log-tabs span.active")?.dataset.tab || "log";
+        if (active === "board") body.innerHTML = boardBuffer.join("");
+      });
+
+      document.querySelectorAll("#log-tabs span").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll("#log-tabs span").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          const body = DOM.q("#log-body");
+          if (tab.dataset.tab === "log") body.innerHTML = logBuffer.join("");
+          if (tab.dataset.tab === "board") body.innerHTML = boardBuffer.join("");
+        });
+      });
+
+      Events.on("node:enter", node => {
+        const storyBody = DOM.q("#story-body");
+        DOM.q("#story-title").textContent = node.title;
+        storyBody.innerHTML = node.text.map(t => `<p>${t}</p>`).join("");
+
+        const st = RPG.Core.getState();
+        const dir = st.lastDirection;
+        const compassCells = document.querySelectorAll(".compass-cell");
+        compassCells.forEach(cell => cell.classList.remove("compass-current"));
+
+        if (dir) {
+          const current = document.querySelector(`.compass-cell[data-dir="${dir.toUpperCase()}"]`);
+          if (current) current.classList.add("compass-current");
+          DOM.q("#compass-text").textContent = `You moved ${dir.toUpperCase()}`;
+        } else {
+          DOM.q("#compass-text").textContent = "";
+        }
+
+        // directional memory for diagonals
+        if (dir === "nw") st.seenDiag.nw = true;
+        if (dir === "ne") st.seenDiag.ne = true;
+        if (dir === "sw") st.seenDiag.sw = true;
+        if (dir === "se") st.seenDiag.se = true;
+
+        document.querySelectorAll(".compass-cell.diag").forEach(cell => {
+          const d = cell.dataset.dir.toLowerCase();
+          const seen = st.seenDiag[d];
+          cell.style.visibility = seen ? "visible" : "hidden";
+          if (seen) cell.classList.add("compass-seen");
+        });
+
+        RPG.Events.emit("stats:update");
+      });
+    })(RPG.DOM, RPG.Events, RPG.Core);
+
+    RPG.Items = {
+      db:{
+        rusty_sword:{ id:"rusty_sword", name:"Rusty Sword", type:"weapon", atk:+2,
+          flavor:"It remembers better days than you do." },
+        tattered_cloak:{ id:"tattered_cloak", name:"Tattered Cloak", type:"armor", def:+1,
+          flavor:"Smells like old rain and older secrets." },
+        memory_charm:{ id:"memory_charm", name:"Memory Charm", type:"trinket", insight:+1,
+          flavor:"It hums when you almost remember." },
+        forest_coin:{ id:"forest_coin", name:"Forest Coin", type:"misc",
+          flavor:"A coin minted by something that isn't human." }
+      }
+    };
+
+    RPG.Merchants = {
+      db:{
+        forest_vendor:{
+          id:"forest_vendor",
+          name:"Wandering Merchant",
+          items:[
+            { id:"tattered_cloak", price:8 },
+            { id:"memory_charm", price:12 },
+            { id:"forest_coin", price:3 }
+          ]
+        }
+      }
+    };
+
+    RPG.Quests = {
+      db:{
+        forest_memory:{
+          id:"forest_memory",
+          name:"Echoes in the Forest",
+          description:"Recover a fragment of your memory hidden in the Whispering Path.",
+          startNode:"start",
+          completeNode:"altar",
+          reward:{ insight:1, gold:5 }
+        }
+      }
+    };
+
+    const DKMap = {
+      coords: {
+        start:   { x: 50,  y: 70 },
+        path:    { x: 60,  y: 55 },
+        clearing:{ x: 70,  y: 40 },
+        brook:   { x: 40,  y: 55 },
+        roots:   { x: 55,  y: 45 },
+        altar:   { x: 65,  y: 30 }
+      },
+      renderNodes() {
+        const container = document.querySelector("#dk-map-nodes");
+        container.innerHTML = "";
+        for (let id in DKMap.coords) {
+          const pos = DKMap.coords[id];
+          const node = RPG.Core.getNode(id);
+          const div = document.createElement("div");
+          div.className = "dk-node";
+          if (node.itemsOnGround?.length) div.classList.add("treasure");
+          if (node.questTrigger) div.classList.add("quest");
+          if (node.pvpAllowed) div.classList.add("pvp");
+          if (node.merchant) div.classList.add("merchant");
+          div.style.left = pos.x + "%";
+          div.style.top = pos.y + "%";
+          div.title = node.title;
+          container.appendChild(div);
+        }
+      },
+      updatePlayer() {
+        const id = RPG.Core.getState().nodeId;
+        const pos = DKMap.coords[id];
+        const player = document.querySelector("#dk-map-player");
+        player.style.left = pos.x + "%";
+        player.style.top = pos.y + "%";
+      },
+      rotateDisc() {
+        if (!Director.rotation) return;
+        const dir = RPG.Core.getState().lastDirection;
+        const map = document.querySelector("#dk-map");
+        const rotation = { n:-4, s:4, e:6, w:-6, nw:-5, ne:-3, sw:3, se:5 }[dir] || 0;
+        map.style.transform = `rotate(${rotation}deg)`;
+      }
+    };
+
+    const Director = {
+      fog: true,
+      flash: true,
+      fireflies: true,
+      crest: true,
+      runes: true,
+      rotation: true,
+      shockwave: true
+    };
+
+    function resetScene() {
+      document.querySelector("#dk-map").style.transform = "rotate(0deg)";
+      document.querySelector("#dk-map-fog").classList.remove("rip");
+      document.querySelector("#flash").style.opacity = 0;
+      document.querySelector("#glyphs").style.opacity = 0;
+      document.querySelector("#dk-crest").style.opacity = 0;
+      document.querySelector("#dk-map-runes").style.opacity = 0.25;
+      document.querySelectorAll(".dk-firefly").forEach(f => f.remove());
+    }
+
+    function spawnFireflies(count = 6) {
+      if (!Director.fireflies) return;
+      const map = document.querySelector("#dk-map");
+      for (let i=0;i<count;i++) {
+        const f = document.createElement("div");
+        f.className = "dk-firefly";
+        f.style.left = (10 + Math.random()*80) + "%";
+        f.style.top = (60 + Math.random()*30) + "%";
+        map.appendChild(f);
+        setTimeout(() => f.remove(), 6000);
+      }
+    }
+
+    function crestPulse() {
+      if (!Director.crest) return;
+      const crest = document.querySelector("#dk-crest");
+      crest.style.animation = "none";
+      crest.offsetHeight;
+      crest.style.animation = "dkCrestBurst 1.2s ease-out forwards";
+    }
+
+    function fogPulseRip() {
+      if (!Director.fog) return;
+      const fog = document.querySelector("#dk-map-fog");
+      fog.style.animation = "none";
+      fog.offsetHeight;
+      fog.style.animation = "dkFogRip 0.8s ease-out";
+    }
+
+    function flashPulse(type) {
+      if (!Director.flash) return;
+      const flash = document.querySelector("#flash");
+      flash.style.animation = "none";
+      flash.offsetHeight;
+      if (type === "quest") {
+        flash.style.animation = "dkQuestFlash 0.4s ease-out";
+      } else {
+        flash.style.animation = "dkSoftFlash 0.4s ease-out";
+      }
+    }
+
+    function runesGlow() {
+      if (!Director.runes) return;
+      const runes = document.querySelector("#dk-map-runes");
+      runes.style.opacity = 0.6;
+      setTimeout(() => runes.style.opacity = 0.25, 800);
+    }
+
+    function sceneShockwave(node) {
+      if (!Director.shockwave) return;
+      const scene = document.querySelector("#scene");
+      const glyphs = document.querySelector("#glyphs");
+      let bg = "#141b3a";
+      if (node.type === "merchant") bg = "#1b2348";
+      if (node.questTrigger) bg = "#1f274f";
+      if (node.pvpAllowed) bg = "#2b0b1b";
+      scene.style.background = `radial-gradient(circle at center, ${bg} 0%, #05030a 50%, #000 100%)`;
+      glyphs.style.opacity = 0.5;
+      setTimeout(() => glyphs.style.opacity = 0, 800);
+    }
+
+    function triggerShockwave(node) {
+      const type = node.type;
+      if (type === "lore") {
+        runesGlow();
+        flashPulse("soft");
+        sceneShockwave(node);
+        spawnFireflies(4);
+      } else if (type === "merchant") {
+        crestPulse();
+        sceneShockwave(node);
+        spawnFireflies(6);
+      } else if (node.questTrigger) {
+        runesGlow();
+        flashPulse("quest");
+        sceneShockwave(node);
+        spawnFireflies(8);
+      } else if (node.pvpAllowed) {
+        fogPulseRip();
+        flashPulse("soft");
+        sceneShockwave(node);
+        spawnFireflies(10);
+      } else {
+        sceneShockwave(node);
+        spawnFireflies(3);
+      }
+    }
+
+    (function(Events,Core){
+      function updateVitals(){
+        const st = Core.getState().stats;
+        const list = document.querySelector("#vitals-widget-list");
+        list.innerHTML = `
+          <li>HP: <span class="value">${st.hp}</span></li>
+          <li>ATK: <span class="value">${st.atk}</span></li>
+          <li>DEF: <span class="value">${st.def}</span></li>
+          <li>Insight: <span class="value">${st.insight}</span></li>
+          <li>Gold: <span class="value">${Core.getState().gold}</span></li>
+        `;
+      }
+      Events.on("stats:update", updateVitals);
+      Events.on("node:enter", node => {
+        updateVitals();
+        DKMap.updatePlayer();
+        DKMap.rotateDisc();
+        triggerShockwave(node);
+        updateMinimap();
+      });
+    })(RPG.Events, RPG.Core);
+
+    (function(Racks,Core,Events,DOM){
+      const MOVE = { n:"n", north:"n", s:"s", south:"s", e:"e", east:"e", w:"w", west:"w",
+                     nw:"nw", ne:"ne", sw:"sw", se:"se" };
+
+      function handle(raw){
+        const cmd = raw.trim().toLowerCase();
+        if (!cmd) return;
+        if (MOVE[cmd]) {
+          Core.move(MOVE[cmd]);
+          return;
+        }
+
+        if (cmd === "help") {
+          Events.emit("log","Commands: n/s/e/w, nw/ne/sw/se, look, where, help, director, reset, shockwave, crest, fireflies, fog, flash, rotate n/e/s/w, vitals, vitals off, map, map off");
+          return;
+        }
+        if (cmd === "director") {
+          document.querySelector("#director-panel").classList.toggle("hidden");
+          Events.emit("log","Director panel toggled.");
+          return;
+        }
+        if (cmd === "reset") {
+          resetScene();
+          Events.emit("log","Scene reset.");
+          return;
+        }
+        if (cmd === "shockwave") {
+          triggerShockwave(Core.getCurrentNode());
+          Events.emit("log","Manual shockwave triggered.");
+          return;
+        }
+        if (cmd === "crest") {
+          crestPulse();
+          Events.emit("log","Fractured sigil pulse triggered.");
+          return;
+        }
+        if (cmd === "fireflies") {
+          spawnFireflies(8);
+          Events.emit("log","Memory sparks spawned.");
+          return;
+        }
+        if (cmd === "fog") {
+          Director.fog = !Director.fog;
+          Events.emit("log",`Fog ${Director.fog ? "enabled" : "disabled"}.`);
+          return;
+        }
+        if (cmd === "flash") {
+          flashPulse("soft");
+          Events.emit("log","Memory blink triggered.");
+          return;
+        }
+        if (cmd.startsWith("rotate")) {
+          const parts = cmd.split(" ");
+          const dir = parts[1];
+          if (["n","s","e","w","nw","ne","sw","se"].includes(dir)) {
+            RPG.Core.getState().lastDirection = dir;
+            DKMap.rotateDisc();
+            Events.emit("log",`Disc rotated ${dir.toUpperCase()}.`);
+          }
+          return;
+        }
+        if (cmd === "vitals") {
+          document.querySelector("#vitals-widget").style.display = "block";
+          Events.emit("log","Vitals widget summoned.");
+          return;
+        }
+        if (cmd === "vitals off") {
+          document.querySelector("#vitals-widget").style.display = "none";
+          Events.emit("log","Vitals widget dismissed.");
+          return;
+        }
+        if (cmd === "map") {
+          document.querySelector("#minimap-widget").style.display = "block";
+          Events.emit("log","Mini-map widget summoned.");
+          return;
+        }
+        if (cmd === "map off") {
+          document.querySelector("#minimap-widget").style.display = "none";
+          Events.emit("log","Mini-map widget dismissed.");
+          return;
+        }
+
+        Events.emit("log",`Unknown command: ${cmd}`);
+      }
+
+      const input = DOM.q("#console-input");
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          handle(input.value);
+          input.value = "";
+        }
+      });
+
+      window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if (k === "w" || k === "arrowup") Core.move("n");
+        if (k === "s" || k === "arrowdown") Core.move("s");
+        if (k === "a" || k === "arrowleft") Core.move("w");
+        if (k === "d" || k === "arrowright") Core.move("e");
+      });
+
+      Racks.Input = { handle };
+    })(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+    (function(){
+      document.querySelector("#toggleFog").addEventListener("change", e => Director.fog = e.target.checked);
+      document.querySelector("#toggleFlash").addEventListener("change", e => Director.flash = e.target.checked);
+      document.querySelector("#toggleFireflies").addEventListener("change", e => Director.fireflies = e.target.checked);
+      document.querySelector("#toggleCrest").addEventListener("change", e => Director.crest = e.target.checked);
+      document.querySelector("#toggleRunes").addEventListener("change", e => Director.runes = e.target.checked);
+      document.querySelector("#toggleRotation").addEventListener("change", e => Director.rotation = e.target.checked);
+      document.querySelector("#toggleShockwave").addEventListener("change", e => Director.shockwave = e.target.checked);
+
+      document.querySelector("#resetScene").addEventListener("click", () => {
+        resetScene();
+        RPG.Events.emit("log","Scene reset (director).");
+      });
+      document.querySelector("#triggerShockwave").addEventListener("click", () => {
+        triggerShockwave(RPG.Core.getCurrentNode());
+        RPG.Events.emit("log","Shockwave triggered (director).");
+      });
+    })();
+
+    function updateMinimap() {
+      const inner = document.querySelector("#minimap-inner");
+      inner.innerHTML = "";
+      const coords = DKMap.coords;
+      const st = RPG.Core.getState();
+      for (let id in coords) {
+        const pos = coords[id];
+        const node = RPG.Core.getNode(id);
+        const dot = document.createElement("div");
+        dot.className = "minimap-node";
+        dot.style.left = pos.x + "%";
+        dot.style.top = pos.y + "%";
+        if (id === st.nodeId) {
+          dot.style.background = "rgba(180,255,240,0.95)";
+        } else if (node.questTrigger) {
+          dot.style.background = "rgba(220,230,255,0.9)";
+        } else if (node.itemsOnGround?.length) {
+          dot.style.background = "rgba(255,255,255,0.9)";
+        }
+        inner.appendChild(dot);
+      }
+    }
+
+    RPG.boot = () => {
+      DKMap.renderNodes();
+      DKMap.updatePlayer();
+      RPG.Events.emit("log","Booting Dreamless Kingdom — Fractured Realm (Cinematic Shell, Director Mode).");
+      RPG.Events.emit("node:enter", RPG.Core.getCurrentNode());
+      RPG.Events.emit("log","Type 'help' for commands.");
+    };
+
+    window.addEventListener("DOMContentLoaded", RPG.boot);
+
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes dkFogRip {
+        0%   { filter: blur(12px); opacity: 0.8; }
+        50%  { filter: blur(2px); opacity: 0.4; }
+        100% { filter: blur(12px); opacity: 0.8; }
+      }
+      @keyframes dkQuestFlash {
+        0%   { opacity: 0; }
+        40%  { opacity: 0.6; }
+        100% { opacity: 0; }
+      }
+      @keyframes dkSoftFlash {
+        0%   { opacity: 0; }
+        40%  { opacity: 0.3; }
+        100% { opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
