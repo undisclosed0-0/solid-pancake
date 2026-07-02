@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dreamless Kingdom — Fractured Realm</title>
+<style>
+:root{
+  --bg:#030306;
+  --accent:#dfe8ff;
+}
+
+/* GLOBAL */
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  background:var(--bg);
+  color:var(--accent);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  overflow-x:hidden;
+}
+
+/* PURE DREAMLESS BACKGROUNDS (LIGHTSWITCH) */
+body.bg-forest #scene{
+  background:radial-gradient(circle at 40% 40%, #1a1128 0%, #05030a 55%, #000 100%);
+}
+body.bg-castle #scene{
+  background:radial-gradient(circle at 80% 40%, #24163a 0%, #05030a 55%, #000 100%);
+}
+body.bg-astral #scene{
+  background:radial-gradient(circle at 50% 20%, #182b4a 0%, #05030a 55%, #000 100%);
+}
+
+/* Cinematic shell */
+#scene{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  transition:background 1.4s ease, filter 1.4s ease, transform 1.4s ease;
+}
+
+/* Distant castle + grove (pure CSS) */
+#dreamless-parallax{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+}
+.dk-sky{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(250,230,180,0.12), transparent 60%),
+    radial-gradient(circle at 80% 8%, rgba(180,200,255,0.18), transparent 70%);
+  mix-blend-mode:screen;
+}
+.dk-stars{
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,0.16) 0, transparent 40%),
+    radial-gradient(circle at 60% 40%, rgba(255,255,255,0.12) 0, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,0.10) 0, transparent 50%);
+  opacity:0.6;
+}
+.dk-hills{
+  position:absolute;
+  bottom:-10px;
+  left:-10%;
+  right:-10%;
+  height:180px;
+  background:
+    radial-gradient(ellipse at 20% 0%, #05070d 0%, #020308 60%, transparent 100%),
+    radial-gradient(ellipse at 60% 0%, #05070d 0%, #020308 60%, transparent 100%);
+  filter:blur(2px);
+}
+.dk-grove{
+  position:absolute;
+  bottom:0;
+  left:6%;
+  width:40%;
+  height:160px;
+}
+.dk-tree{
+  position:absolute;
+  bottom:0;
+  width:26px;
+  background:linear-gradient(180deg,#020602,#07120a);
+  border-radius:40px;
+  box-shadow:inset -6px 0 12px rgba(0,0,0,0.6);
+}
+.dk-tree.t1{left:12px;height:80%;}
+.dk-tree.t2{left:52px;height:68%;}
+.dk-tree.t3{left:92px;height:90%;}
+.dk-tree.t4{left:132px;height:72%;}
+.dk-tree-canopy{
+  position:absolute;
+  bottom:60px;
+  left:0;
+  right:0;
+  height:80px;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(20,40,20,0.9), transparent 60%),
+    radial-gradient(circle at 60% 30%, rgba(20,40,20,0.9), transparent 60%);
+  filter:blur(2px);
+}
+.dk-castle{
+  position:absolute;
+  bottom:40px;
+  right:8%;
+  width:220px;
+  height:160px;
+}
+.dk-castle-base{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:60px;
+  background:linear-gradient(180deg,#0b0b12,#050308);
+  border-radius:40px 40px 0 0;
+  box-shadow:0 0 40px rgba(0,0,0,0.9);
+}
+.dk-tower{
+  position:absolute;
+  bottom:60px;
+  width:40px;
+  background:linear-gradient(180deg,#141424,#080812);
+  box-shadow:0 0 20px rgba(0,0,0,0.8);
+}
+.dk-tower.tl{left:20px;height:80px;}
+.dk-tower.tc{left:90px;height:110px;}
+.dk-tower.tr{left:160px;height:90px;}
+.dk-tower-top{
+  position:absolute;
+  bottom:0;
+  left:-4px;
+  right:-4px;
+  height:12px;
+  background:linear-gradient(180deg,#dfe8ff,#8c9ad0);
+  border-radius:4px 4px 0 0;
+}
+.dk-banner{
+  position:absolute;
+  bottom:140px;
+  left:110px;
+  width:4px;
+  height:40px;
+  background:linear-gradient(180deg,#dfe8ff,#7a8bd8);
+}
+.dk-moon-halo{
+  position:absolute;
+  top:8%;
+  right:14%;
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 30%, rgba(250,230,180,0.9), transparent 70%);
+  box-shadow:0 0 60px rgba(250,230,180,0.4);
+}
+
+/* App shell */
+#app{
+  position:relative;
+  z-index:2;
+  max-width:1100px;
+  margin:2rem auto;
+  padding:1.5rem 2rem 90px;
+  background:rgba(8,6,16,0.55);
+  backdrop-filter:blur(18px);
+  border-radius:14px;
+  border:1px solid rgba(190,160,255,0.45);
+  box-shadow:0 0 60px rgba(0,0,0,0.9);
+}
+
+/* Header */
+#header{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+}
+#game-title{
+  font-size:1.4rem;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+}
+#header-meta{
+  font-size:0.8rem;
+  opacity:0.85;
+}
+#header-meta span+span{margin-left:0.75rem;}
+
+/* NEW CEREMONIAL DIVIDER (castle‑grove motif) */
+.dk-divider{
+  position:relative;
+  margin:18px 0 26px;
+  height:40px;
+}
+.dk-divider-line{
+  position:absolute;
+  left:8%;
+  right:8%;
+  top:50%;
+  height:2px;
+  background:linear-gradient(90deg,rgba(210,190,140,0.1),rgba(255,220,160,0.7),rgba(210,190,140,0.1));
+}
+.dk-divider-hill{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:220px;
+  height:40px;
+  transform:translate(-50%,-50%);
+  border-radius:50% 50% 40% 40%;
+  background:radial-gradient(ellipse at 50% 30%, rgba(10,12,18,0.95), rgba(6,6,10,0.98) 60%);
+  box-shadow:inset -40px -10px 80px rgba(0,0,0,0.7);
+}
+.dk-divider-castle{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:80px;
+  height:40px;
+  transform:translate(60%,-110%);
+}
+.dk-divider-castle-tower{
+  position:absolute;
+  bottom:0;
+  width:18px;
+  background:linear-gradient(180deg,#141424,#080812);
+}
+.dk-divider-castle-tower:nth-child(1){left:0;height:26px;}
+.dk-divider-castle-tower:nth-child(2){left:22px;height:34px;}
+.dk-divider-castle-tower:nth-child(3){left:44px;height:28px;}
+.dk-divider-castle-tower:nth-child(4){left:66px;height:30px;}
+.dk-divider-castle-tower::after{
+  content:"";
+  position:absolute;
+  left:-2px;
+  right:-2px;
+  top:-6px;
+  height:6px;
+  border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,#dfe8ff,#8c9ad0);
+}
+
+/* STORY */
+#story-feed{
+  min-height:150px;
+  max-height:220px;
+  overflow-y:auto;
+  padding:0.75rem 0.9rem;
+  border-radius:10px;
+  background:radial-gradient(circle at top left, rgba(40,30,70,0.8), rgba(10,8,20,0.96));
+  box-shadow:inset 0 0 18px rgba(0,0,0,0.9);
+  font-size:0.95rem;
+  line-height:1.6;
+}
+#story-feed h2{
+  margin:0 0 0.4rem;
+  font-size:1rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+
+/* LANDSCAPE + ARTIFACT PANEL (Breathing Castle‑Grove) */
+#landscape-panel{
+  margin-top:1rem;
+  display:grid;
+  grid-template-columns:2fr 1.1fr;
+  gap:0.75rem;
+}
+#landscape-card{
+  position:relative;
+  border-radius:12px;
+  padding:12px 14px 16px;
+  background:linear-gradient(180deg,rgba(20,16,40,0.96),rgba(8,6,18,0.98));
+  box-shadow:0 14px 40px rgba(0,0,0,0.8);
+}
+#landscape-title{
+  font-size:0.85rem;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  opacity:0.85;
+}
+#landscape-sub{
+  font-size:0.8rem;
+  opacity:0.8;
+  margin-top:2px;
+}
+.landscape-strip{
+  position:relative;
+  margin-top:10px;
+  height:80px;
+  border-radius:10px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#12091f,#05030a);
+}
+.landscape-horizon{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 20% 60%, rgba(40,60,40,0.9), transparent 70%),
+    radial-gradient(ellipse at 70% 40%, rgba(40,50,80,0.9), transparent 70%);
+  filter:blur(1.2px);
+}
+.landscape-castle-mini{
+  position:absolute;
+  right:12%;
+  bottom:10px;
+  width:90px;
+  height:50px;
+}
+.landscape-castle-base{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:20px;
+  border-radius:40px 40px 0 0;
+  background:linear-gradient(180deg,#0b0b12,#050308);
+}
+.landscape-castle-tower{
+  position:absolute;
+  bottom:20px;
+  width:16px;
+  background:linear-gradient(180deg,#141424,#080812);
+}
+.landscape-castle-tower:nth-child(2){left:10px;height:26px;}
+.landscape-castle-tower:nth-child(3){left:32px;height:32px;}
+.landscape-castle-tower:nth-child(4){left:54px;height:24px;}
+.landscape-castle-tower::after{
+  content:"";
+  position:absolute;
+  left:-2px;
+  right:-2px;
+  top:-6px;
+  height:6px;
+  border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,#dfe8ff,#8c9ad0);
+}
+.landscape-mint-hint{
+  position:absolute;
+  left:8%;
+  right:8%;
+  bottom:0;
+  height:18px;
+  background:radial-gradient(ellipse at 50% 0%, rgba(120,220,200,0.35), transparent 70%);
+  opacity:0.7;
+}
+
+/* Artifact card */
+#artifact-card{
+  border-radius:12px;
+  padding:12px 14px 16px;
+  background:linear-gradient(180deg,rgba(16,12,32,0.96),rgba(6,4,16,0.98));
+  box-shadow:0 14px 40px rgba(0,0,0,0.8);
+}
+#artifact-title{
+  font-size:0.85rem;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  opacity:0.85;
+}
+#artifact-body{
+  margin-top:8px;
+  font-size:0.85rem;
+  line-height:1.5;
+}
+.artifact-glyph{
+  margin-top:10px;
+  height:70px;
+  border-radius:10px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(220,220,255,0.18), transparent 60%),
+    radial-gradient(circle at 70% 70%, rgba(180,140,255,0.22), transparent 60%);
+  box-shadow:0 0 26px rgba(200,180,255,0.4);
+}
+
+/* DISC PANEL (original disc as bonus feature) */
+#disc-panel{
+  margin-top:1rem;
+  display:flex;
+  justify-content:center;
+}
+#dk-disc{
+  position:relative;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, rgba(220,220,255,0.12), rgba(10,10,16,0.98));
+  box-shadow:0 18px 48px rgba(0,0,0,0.8);
+  display:grid;
+  place-items:center;
+}
+#dk-disc svg{
+  width:180px;
+  height:180px;
+}
+.dk-disc-ring{fill:none;stroke-width:1.6;stroke-linecap:round;}
+.dk-disc-ring-large{stroke:rgba(200,200,255,0.22);}
+.dk-disc-ring-mid{stroke:rgba(190,200,240,0.36);stroke-dasharray:5 6;}
+.dk-disc-ring-small{stroke:rgba(230,230,255,0.95);}
+.dk-disc-spokes line{stroke:rgba(220,220,255,0.7);stroke-width:1;}
+.dk-disc-core{
+  fill:none;
+  stroke:rgba(240,240,255,0.98);
+  stroke-width:1;
+}
+.dk-disc-orbit{
+  position:absolute;
+  width:90px;
+  height:90px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.dk-disc-sphere{
+  fill:rgba(255,255,255,0.85);
+  filter:blur(1px);
+}
+
+/* MID ROW: COMPASS + VITALS */
+#mid-row{
+  margin-top:1rem;
+  display:grid;
+  grid-template-columns:1.1fr 1.1fr;
+  gap:0.75rem;
+}
+#compass-panel,#vitals-panel{
+  padding:0.6rem 0.75rem;
+  border-radius:8px;
+  background:rgba(12,10,24,0.96);
+  font-size:0.85rem;
+}
+#compass-title,#vitals-title{
+  font-size:0.8rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  opacity:0.8;
+}
+#compass-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0.1rem;
+  margin-top:0.25rem;
+  font-family:"Courier New",monospace;
+}
+.compass-cell{
+  height:1.4rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0.7;
+}
+.compass-current{
+  color:#c9b3ff;
+  text-shadow:0 0 6px rgba(200,180,255,0.9);
+  opacity:1;
+}
+#compass-text{
+  margin-top:0.35rem;
+  opacity:0.8;
+  min-height:1.2rem;
+}
+#vitals-list{
+  list-style:none;
+  padding:0;
+  margin:0.1rem 0 0;
+}
+#vitals-list li{margin-bottom:0.15rem;}
+#vitals-list span.value{
+  font-weight:bold;
+  color:#e4d4ff;
+}
+
+/* LOG + CONSOLE */
+#log-panel{
+  margin-top:0.9rem;
+  padding:0.6rem 0.75rem;
+  border-radius:8px;
+  background:rgba(10,8,20,0.96);
+  font-size:0.85rem;
+  display:flex;
+  flex-direction:column;
+  min-height:160px;
+  max-height:260px;
+}
+#log-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+}
+#log-title{
+  font-size:0.8rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  opacity:0.8;
+}
+#log-tabs{
+  font-size:0.75rem;
+  opacity:0.7;
+}
+#log-tabs span{
+  cursor:pointer;
+  margin-left:0.5rem;
+}
+#log-tabs span.active{
+  color:#e4d4ff;
+  text-decoration:underline;
+  opacity:1;
+}
+#log-body{
+  flex:1;
+  overflow-y:auto;
+  margin-top:0.25rem;
+  padding-right:0.25rem;
+}
+.log-line{margin-bottom:0.15rem;white-space:pre-wrap;}
+.log-line.world{color:#f0e4ff;}
+.log-line.board{color:#ffd9a0;}
+
+#console-panel{
+  margin-top:0.4rem;
+  padding-top:0.4rem;
+  border-top:1px solid rgba(120,100,190,0.4);
+  display:flex;
+  align-items:center;
+  gap:0.3rem;
+  font-family:"Courier New",monospace;
+  font-size:0.9rem;
+}
+#console-label{color:#9b8ad8;}
+#console-input{
+  flex:1;
+  background:rgba(8,6,16,0.95);
+  border-radius:4px;
+  border:1px solid rgba(150,130,230,0.6);
+  color:#f5f0ff;
+  padding:0.35rem 0.5rem;
+  outline:none;
+  box-shadow:0 0 8px rgba(0,0,0,0.8);
+}
+#console-input:focus{
+  box-shadow:0 0 12px rgba(180,150,255,0.8);
+}
+#console-hint{
+  font-size:0.75rem;
+  opacity:0.7;
+  margin-left:0.25rem;
+}
+
+/* SIDEBAR: SUMMONED MAP WIDGET */
+#sidebar{
+  margin-top:1rem;
+}
+.map-panel-toggle{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.map-panel-toggle button{
+  background:rgba(255,255,255,0.04);
+  color:inherit;
+  border:1px solid rgba(255,255,255,0.06);
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+#mapCard,#mapViewport,#dk-map{
+  box-sizing:border-box;
+  width:100%;
+  height:100%;
+}
+#mapCard{
+  display:flex;
+  flex-direction:column;
+  height:260px;
+  min-height:220px;
+  border-radius:10px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#07121a,#041018);
+  border:6px solid rgba(255,255,255,0.03);
+  box-shadow:0 12px 30px rgba(0,0,0,0.5);
+}
+#mapCard.hidden{display:none!important;}
+#mapViewport{
+  flex:1 1 auto;
+  padding:6px;
+}
+
+/* DISC MAP AREA */
+#dk-map{
+  position:relative;
+  width:100%;
+  height:100%;
+  border-radius:12px;
+  overflow:hidden;
+  background:radial-gradient(circle at center,#12091f 0%,#05030a 60%,#000 100%);
+  transition:transform 0.8s ease;
+}
+#dk-map-fog{
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle,rgba(255,255,255,0.05),transparent 70%);
+  animation:dkFogDrift 18s linear infinite;
+  filter:blur(12px);
+  opacity:0.7;
+  pointer-events:none;
+}
+@keyframes dkFogDrift{
+  from{transform:translateX(-3%) translateY(2%);}
+  to{transform:translateX(3%) translateY(-2%);}
+}
+#dk-map-runes{
+  position:absolute;
+  inset:0;
+  background-image:url('glyphs.png');
+  background-size:140%;
+  background-position:center;
+  background-repeat:no-repeat;
+  opacity:0.25;
+  pointer-events:none;
+}
+#dk-map-nodes{
+  position:absolute;
+  inset:0;
+}
+.dk-node{
+  position:absolute;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:rgba(180,150,255,0.8);
+  box-shadow:0 0 12px rgba(180,150,255,0.9);
+  animation:dkNodeFloat 6s ease-in-out infinite;
+}
+@keyframes dkNodeFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-6px);}
+}
+.dk-node.treasure{
+  background:rgba(255,215,0,0.9);
+  box-shadow:0 0 14px rgba(255,215,0,1);
+}
+.dk-node.quest{
+  background:rgba(200,220,255,0.9);
+  box-shadow:0 0 14px rgba(200,220,255,1);
+}
+.dk-node.pvp{
+  background:rgba(255,80,80,0.9);
+  box-shadow:0 0 14px rgba(255,80,80,1);
+}
+.dk-node.merchant{
+  background:rgba(120,180,255,0.9);
+  box-shadow:0 0 14px rgba(120,180,255,1);
+}
+#dk-map-player{
+  position:absolute;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:rgba(120,255,200,0.9);
+  box-shadow:0 0 18px rgba(120,255,200,1);
+  transform:translate(-50%,-50%);
+  transition:left 0.8s ease, top 0.8s ease;
+  pointer-events:none;
+}
+.dk-firefly{
+  position:absolute;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:radial-gradient(circle,#c9b3ff,transparent);
+  animation:dkFireflyDrift 10s linear infinite;
+  pointer-events:none;
+  opacity:0.8;
+}
+@keyframes dkFireflyDrift{
+  from{transform:translateY(0) translateX(0);opacity:0.8;}
+  to{transform:translateY(-80px) translateX(30px);opacity:0;}
+}
+#dk-crest{
+  position:absolute;
+  inset:0;
+  background-image:url('dk_crest.png');
+  background-size:contain;
+  background-position:center;
+  background-repeat:no-repeat;
+  opacity:0;
+  pointer-events:none;
+}
+@keyframes dkCrestBurst{
+  0%{opacity:0;transform:scale(0.8);}
+  50%{opacity:1;transform:scale(1.2);}
+  100%{opacity:0;transform:scale(1);}
+}
+
+/* DIRECTOR PANEL (includes background lightswitch) */
+#director-panel{
+  position:fixed;
+  right:16px;
+  top:16px;
+  background:rgba(10,5,25,0.95);
+  color:#fff;
+  padding:10px 12px;
+  border-radius:8px;
+  box-shadow:0 0 20px rgba(0,0,0,0.8);
+  font-size:0.8rem;
+  z-index:2000;
+}
+#director-panel.hidden{display:none;}
+#director-panel h3{
+  margin:0 0 6px;
+  font-size:0.9rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+#director-panel label{display:block;margin-bottom:4px;}
+#director-panel button{
+  margin-top:6px;
+  margin-right:4px;
+  padding:4px 8px;
+  border-radius:4px;
+  border:none;
+  background:#3b2b4f;
+  color:#f5f0ff;
+  cursor:pointer;
+  font-size:0.75rem;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  #app{margin:0.5rem;height:calc(100dvh - 1rem);overflow-y:auto;}
+  #mid-row{grid-template-columns:1fr;}
+  #landscape-panel{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body class="bg-castle">
+<div id="scene"></div>
+<div id="dreamless-parallax">
+  <div class="dk-sky"></div>
+  <div class="dk-stars"></div>
+  <div class="dk-hills"></div>
+  <div class="dk-grove">
+    <div class="dk-tree t1"></div>
+    <div class="dk-tree t2"></div>
+    <div class="dk-tree t3"></div>
+    <div class="dk-tree t4"></div>
+    <div class="dk-tree-canopy"></div>
+  </div>
+  <div class="dk-castle">
+    <div class="dk-castle-base"></div>
+    <div class="dk-tower tl"><div class="dk-tower-top"></div></div>
+    <div class="dk-tower tc"><div class="dk-tower-top"></div></div>
+    <div class="dk-tower tr"><div class="dk-tower-top"></div></div>
+    <div class="dk-banner"></div>
+  </div>
+  <div class="dk-moon-halo"></div>
+</div>
+
+<div id="app">
+  <header id="header">
+    <div id="game-title">Dreamless Kingdom — Fractured Realm</div>
+    <div id="header-meta">
+      <span id="meta-location">Celestial Forest</span>
+      <span id="meta-time">Nightfall</span>
+    </div>
+  </header>
+
+  <div class="dk-divider">
+    <div class="dk-divider-line"></div>
+    <div class="dk-divider-hill"></div>
+    <div class="dk-divider-castle">
+      <div class="dk-divider-castle-tower"></div>
+      <div class="dk-divider-castle-tower"></div>
+      <div class="dk-divider-castle-tower"></div>
+      <div class="dk-divider-castle-tower"></div>
+    </div>
+  </div>
+
+  <!-- STORY -->
+  <section id="story-feed">
+    <h2 id="story-title">Edge of Memory</h2>
+    <div id="story-body">
+      <p>Mist curls around your ankles.</p>
+      <p>Something important happened here, but the memory slips away.</p>
+    </div>
+  </section>
+
+  <!-- LANDSCAPE + ARTIFACT PANEL -->
+  <section id="landscape-panel">
+    <div id="landscape-card">
+      <div id="landscape-title">Breathing Castle‑Grove</div>
+      <div id="landscape-sub">Wide landscape fragment · Indigo + Lavender</div>
+      <div class="landscape-strip">
+        <div class="landscape-horizon"></div>
+        <div class="landscape-castle-mini">
+          <div class="landscape-castle-base"></div>
+          <div class="landscape-castle-tower"></div>
+          <div class="landscape-castle-tower"></div>
+          <div class="landscape-castle-tower"></div>
+        </div>
+        <div class="landscape-mint-hint"></div>
+      </div>
+    </div>
+
+    <div id="artifact-card">
+      <div id="artifact-title">Dreamless Kingdom Artifact</div>
+      <div id="artifact-body">
+        Nestled at the edge of the grove, a sigil‑stone remembers every step you’ve taken here.
+        Its glow bends gently with the grass, breathing in time with the castle’s distant heartbeat.
+      </div>
+      <div class="artifact-glyph"></div>
+    </div>
+  </section>
+
+  <!-- DISC PANEL (bonus feature, sandwiched between landscape and compass) -->
+  <section id="disc-panel">
+    <div id="dk-disc">
+      <svg viewBox="0 0 160 160" aria-hidden="true">
+        <circle cx="80" cy="80" r="74" class="dk-disc-ring dk-disc-ring-large"/>
+        <circle cx="80" cy="80" r="48" class="dk-disc-ring dk-disc-ring-mid"/>
+        <circle cx="80" cy="80" r="30" class="dk-disc-ring dk-disc-ring-small"/>
+        <circle cx="80" cy="80" r="16" class="dk-disc-core"/>
+        <g class="dk-disc-spokes">
+          <line x1="80" y1="80" x2="80" y2="12"/>
+          <line x1="80" y1="80" x2="148" y2="80"/>
+          <line x1="80" y1="80" x2="80" y2="148"/>
+          <line x1="80" y1="80" x2="12"  y2="80"/>
+        </g>
+      </svg>
+      <div class="dk-disc-orbit">
+        <svg viewBox="0 0 84 84">
+          <circle cx="42" cy="18" r="10" class="dk-disc-sphere"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPASS + VITALS -->
+  <section id="mid-row">
+    <div id="compass-panel">
+      <div id="compass-title">Ground Compass</div>
+      <div id="compass-grid">
+        <div class="compass-cell" data-dir="NW">NW</div>
+        <div class="compass-cell" data-dir="N">N</div>
+        <div class="compass-cell" data-dir="NE">NE</div>
+        <div class="compass-cell" data-dir="W">W</div>
+        <div class="compass-cell" data-dir="C">✦</div>
+        <div class="compass-cell" data-dir="E">E</div>
+        <div class="compass-cell" data-dir="SW">SW</div>
+        <div class="compass-cell" data-dir="S">S</div>
+        <div class="compass-cell" data-dir="SE">SE</div>
+      </div>
+      <div id="compass-text"></div>
+    </div>
+
+    <div id="vitals-panel">
+      <div id="vitals-title">Vitals</div>
+      <ul id="vitals-list"></ul>
+    </div>
+  </section>
+
+  <!-- LOG + COMMAND BAR -->
+  <section id="log-panel">
+    <div id="log-header">
+      <div id="log-title">Action Log</div>
+      <div id="log-tabs">
+        <span data-tab="log" class="active">Log</span>
+        <span data-tab="board">Board</span>
+      </div>
+    </div>
+    <div id="log-body"></div>
+    <div id="console-panel">
+      <span id="console-label">&gt;</span>
+      <input id="console-input" type="text" autocomplete="off" />
+      <span id="console-hint">Type "help" for commands (n/s/e/w, nw/ne/sw/se, etc.)</span>
+    </div>
+  </section>
+
+  <!-- SUMMONED MAP WIDGET -->
+  <section id="sidebar">
+    <div class="map-panel-toggle">
+      <button id="toggleMap">Summon / Release Map</button>
+      <span id="mapScale">Dreamless Map Widget</span>
+    </div>
+    <div id="mapCard" class="hidden">
+      <div id="mapViewport">
+        <div id="dk-map">
+          <div id="dk-map-fog"></div>
+          <div id="dk-map-runes"></div>
+          <div id="dk-map-nodes"></div>
+          <div id="dk-map-player"></div>
+          <div id="dk-crest"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- DIRECTOR PANEL (includes background lightswitch) -->
+<div id="director-panel" class="hidden">
+  <h3>Director Mode</h3>
+  <label><input type="checkbox" id="toggleFog" checked> Fog</label>
+  <label><input type="checkbox" id="toggleFlash" checked> Flash</label>
+  <label><input type="checkbox" id="toggleFireflies" checked> Fireflies</label>
+  <label><input type="checkbox" id="toggleCrest" checked> Crest</label>
+  <label><input type="checkbox" id="toggleRunes" checked> Runes</label>
+  <label><input type="checkbox" id="toggleRotation" checked> Disc Rotation</label>
+  <label><input type="checkbox" id="toggleShockwave" checked> Shockwave</label>
+  <hr>
+  <div>Background Shell</div>
+  <button data-bg="bg-forest">Forest Shell</button>
+  <button data-bg="bg-castle">Castle Shell</button>
+  <button data-bg="bg-astral">Astral Shell</button>
+  <hr>
+  <button id="resetScene">Reset Scene</button>
+  <button id="triggerShockwave">Shockwave</button>
+</div>
+
+<script>
+const RPG = { Core:{}, Events:{}, DOM:{}, Racks:{}, boot:null };
+
+(function(Core){
+  const State = {
+    nodeId:"start",
+    stats:{ hp:10, atk:2, def:1, insight:0 },
+    flags:{},
+    inventory:[],
+    equipment:{ weapon:null, armor:null, trinket:null },
+    gold:10,
+    quests:{ active:[], completed:[] },
+    lastDirection:null
+  };
+
+  const Nodes = {
+    start:{
+      id:"start", zone:"forest", type:"lore",
+      title:"Edge of Memory",
+      text:[
+        "Mist curls around your ankles.",
+        "Something important happened here, but the memory slips away."
+      ],
+      exits:{ n:"path", e:"brook" },
+      itemsOnGround:["rusty_sword"],
+      media:{ ambient:"forest_wind" }
+    },
+    path:{
+      id:"path", zone:"forest", type:"merchant",
+      title:"Whispering Path",
+      text:[
+        "Branches creak overhead.",
+        "Whispers drift between the trees, almost forming words."
+      ],
+      exits:{ s:"start", e:"clearing", w:"roots" },
+      merchant:"forest_vendor",
+      pvpAllowed:true,
+      media:{ ambient:"branch_creak" }
+    },
+    brook:{
+      id:"brook", zone:"forest", type:"lore",
+      title:"Silent Brook",
+      text:[
+        "Water flows without a sound.",
+        "Your reflection ripples into someone else's face."
+      ],
+      exits:{ w:"start", n:"den" },
+      itemsOnGround:["forest_coin"],
+      media:{ ambient:"deep_echo" }
+    },
+    clearing:{
+      id:"clearing", zone:"forest", type:"quest",
+      title:"Moonlit Clearing",
+      text:[
+        "Moonlight pools like silver paint.",
+        "Something glows faintly beneath the grass."
+      ],
+      exits:{ w:"path", n:"altar" },
+      itemsOnGround:["memory_charm"],
+      questTrigger:"forest_memory"
+    },
+    roots:{
+      id:"roots", zone:"forest", type:"pvp",
+      title:"Root‑Snarl",
+      text:[
+        "Roots twist like sleeping serpents.",
+        "A faint heartbeat pulses beneath the soil."
+      ],
+      exits:{ e:"path", n:"altar" },
+      pvpAllowed:true
+    },
+    altar:{
+      id:"altar", zone:"forest", type:"lore",
+      title:"Forgotten Altar",
+      text:[
+        "Stone worn smooth by centuries.",
+        "A memory waits here, patient and heavy."
+      ],
+      exits:{ s:"clearing", w:"roots" },
+      media:{ ambient:"deep_echo" },
+      videoCutscene:"memory_flash",
+      questComplete:"forest_memory"
+    }
+  };
+
+  Core.getState = () => State;
+  Core.getNode = id => Nodes[id];
+  Core.getCurrentNode = () => Core.getNode(State.nodeId);
+  Core.Nodes = Nodes;
+
+  Core.move = dir => {
+    const node = Core.getCurrentNode();
+    const destId = node.exits?.[dir];
+    if (!destId) return RPG.Events.emit("log",`You cannot go ${dir} from here.`);
+    State.nodeId = destId;
+    State.lastDirection = dir;
+    RPG.Events.emit("node:enter", Core.getCurrentNode());
+  };
+})(RPG.Core);
+
+(function(Events){
+  const listeners = {};
+  Events.on = (t,f) => (listeners[t] ||= []).push(f);
+  Events.emit = (t,p) => (listeners[t] || []).forEach(fn => fn(p));
+})(RPG.Events);
+
+(function(DOM,Events,Core){
+  DOM.q = sel => document.querySelector(sel);
+
+  const logBuffer = [];
+  const boardBuffer = [];
+
+  Events.on("log", msg => {
+    logBuffer.push(`<div class="log-line world">${msg}</div>`);
+    const body = DOM.q("#log-body");
+    const active = document.querySelector("#log-tabs span.active")?.dataset.tab || "log";
+    if (active === "log") body.innerHTML = logBuffer.join("");
+    body.scrollTop = body.scrollHeight;
+  });
+
+  Events.on("board", msg => {
+    boardBuffer.push(`<div class="log-line board">${msg}</div>`);
+    const body = DOM.q("#log-body");
+    const active = document.querySelector("#log-tabs span.active")?.dataset.tab || "log";
+    if (active === "board") body.innerHTML = boardBuffer.join("");
+  });
+
+  document.querySelectorAll("#log-tabs span").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#log-tabs span").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      const body = DOM.q("#log-body");
+      if (tab.dataset.tab === "log") body.innerHTML = logBuffer.join("");
+      if (tab.dataset.tab === "board") body.innerHTML = boardBuffer.join("");
+    });
+  });
+
+  Events.on("node:enter", node => {
+    const storyBody = DOM.q("#story-body");
+    DOM.q("#story-title").textContent = node.title;
+    storyBody.innerHTML = node.text.map(t => `<p>${t}</p>`).join("");
+
+    const dir = RPG.Core.getState().lastDirection;
+    const compassCells = document.querySelectorAll(".compass-cell");
+    compassCells.forEach(cell => cell.classList.remove("compass-current"));
+    if (dir) {
+      const current = document.querySelector(`.compass-cell[data-dir="${dir.toUpperCase()}"]`);
+      if (current) current.classList.add("compass-current");
+      DOM.q("#compass-text").textContent = `You moved ${dir.toUpperCase()}`;
+    } else {
+      DOM.q("#compass-text").textContent = "";
+    }
+
+    RPG.Events.emit("stats:update");
+  });
+})(RPG.DOM, RPG.Events, RPG.Core);
+
+/* ITEMS / MERCHANTS / QUESTS (unchanged flavor) */
+RPG.Items = {
+  db:{
+    rusty_sword:{ id:"rusty_sword", name:"Rusty Sword", type:"weapon", atk:+2,
+      flavor:"It remembers better days than you do." },
+    tattered_cloak:{ id:"tattered_cloak", name:"Tattered Cloak", type:"armor", def:+1,
+      flavor:"Smells like old rain and older secrets." },
+    memory_charm:{ id:"memory_charm", name:"Memory Charm", type:"trinket", insight:+1,
+      flavor:"It hums when you almost remember." },
+    forest_coin:{ id:"forest_coin", name:"Forest Coin", type:"misc",
+      flavor:"A coin minted by something that isn't human." }
+  }
+};
+
+RPG.Merchants = {
+  db:{
+    forest_vendor:{
+      id:"forest_vendor",
+      name:"Wandering Merchant",
+      items:[
+        { id:"tattered_cloak", price:8 },
+        { id:"memory_charm", price:12 },
+        { id:"forest_coin", price:3 }
+      ]
+    }
+  }
+};
+
+RPG.Quests = {
+  db:{
+    forest_memory:{
+      id:"forest_memory",
+      name:"Echoes in the Forest",
+      description:"Recover a fragment of your memory hidden in the Whispering Path.",
+      startNode:"start",
+      completeNode:"altar",
+      reward:{ insight:1, gold:5 }
+    }
+  }
+};
+
+/* DISC MAP COORDS + WIDGET */
+const DKMap = {
+  coords:{
+    start:{ x:50, y:80 },
+    path:{ x:60, y:60 },
+    clearing:{ x:70, y:40 },
+    brook:{ x:40, y:60 },
+    roots:{ x:55, y:45 },
+    altar:{ x:65, y:25 }
+  },
+  renderNodes(){
+    const container = document.querySelector("#dk-map-nodes");
+    container.innerHTML = "";
+    for (let id in DKMap.coords){
+      const pos = DKMap.coords[id];
+      const node = RPG.Core.getNode(id);
+      const div = document.createElement("div");
+      div.className = "dk-node";
+      if (node.itemsOnGround?.length) div.classList.add("treasure");
+      if (node.questTrigger) div.classList.add("quest");
+      if (node.pvpAllowed) div.classList.add("pvp");
+      if (node.merchant) div.classList.add("merchant");
+      div.style.left = pos.x + "%";
+      div.style.top = pos.y + "%";
+      div.title = node.title;
+      container.appendChild(div);
+    }
+  },
+  updatePlayer(){
+    const id = RPG.Core.getState().nodeId;
+    const pos = DKMap.coords[id];
+    const player = document.querySelector("#dk-map-player");
+    player.style.left = pos.x + "%";
+    player.style.top = pos.y + "%";
+  },
+  rotateDisc(){
+    if (!Director.rotation) return;
+    const dir = RPG.Core.getState().lastDirection;
+    const map = document.querySelector("#dk-map");
+    const rotation = { n:-4, s:4, e:6, w:-6 }[dir] || 0;
+    map.style.transform = `rotate(${rotation}deg)`;
+  }
+};
+
+const Director = {
+  fog:true,
+  flash:true,
+  fireflies:true,
+  crest:true,
+  runes:true,
+  rotation:true,
+  shockwave:true
+};
+
+function resetScene(){
+  document.querySelector("#dk-map").style.transform = "rotate(0deg)";
+  document.querySelector("#dk-map-fog").classList.remove("rip");
+  document.querySelector("#dk-crest").style.opacity = 0;
+  document.querySelector("#dk-map-runes").style.opacity = 0.25;
+  document.querySelectorAll(".dk-firefly").forEach(f => f.remove());
+}
+
+function spawnFireflies(count = 6){
+  if (!Director.fireflies) return;
+  const map = document.querySelector("#dk-map");
+  for (let i=0;i<count;i++){
+    const f = document.createElement("div");
+    f.className = "dk-firefly";
+    f.style.left = (10 + Math.random()*80) + "%";
+    f.style.top = (60 + Math.random()*30) + "%";
+    map.appendChild(f);
+    setTimeout(() => f.remove(), 8000);
+  }
+}
+
+function crestPulse(){
+  if (!Director.crest) return;
+  const crest = document.querySelector("#dk-crest");
+  crest.style.animation = "none";
+  crest.offsetHeight;
+  crest.style.animation = "dkCrestBurst 1.2s ease-out forwards";
+}
+
+function sceneShockwave(node){
+  if (!Director.shockwave) return;
+  const scene = document.querySelector("#scene");
+  let bg = "#1a1128";
+  if (node.type === "merchant") bg = "#2b1820";
+  if (node.questTrigger) bg = "#1b2333";
+  if (node.pvpAllowed) bg = "#2b0b0b";
+  scene.style.background = `radial-gradient(circle at center, ${bg} 0%, #05030a 55%, #000 100%)`;
+}
+
+function triggerShockwave(node){
+  const type = node.type;
+  if (type === "lore"){
+    sceneShockwave(node);
+    spawnFireflies(4);
+  } else if (type === "merchant"){
+    crestPulse();
+    sceneShockwave(node);
+    spawnFireflies(6);
+  } else if (node.questTrigger){
+    sceneShockwave(node);
+    spawnFireflies(8);
+  } else if (node.pvpAllowed){
+    sceneShockwave(node);
+    spawnFireflies(10);
+  } else {
+    sceneShockwave(node);
+    spawnFireflies(3);
+  }
+}
+
+/* VITALS + NODE ENTER HOOK */
+(function(Events,Core){
+  function updateVitals(){
+    const st = Core.getState().stats;
+    const list = document.querySelector("#vitals-list");
+    list.innerHTML = `
+      <li>HP: <span class="value">${st.hp}</span></li>
+      <li>ATK: <span class="value">${st.atk}</span></li>
+      <li>DEF: <span class="value">${st.def}</span></li>
+      <li>Insight: <span class="value">${st.insight}</span></li>
+      <li>Gold: <span class="value">${Core.getState().gold}</span></li>
+    `;
+  }
+  Events.on("stats:update", updateVitals);
+  Events.on("node:enter", node => {
+    updateVitals();
+    DKMap.updatePlayer();
+    DKMap.rotateDisc();
+    triggerShockwave(node);
+  });
+})(RPG.Events, RPG.Core);
+
+/* INPUT RACK + DIRECTOR COMMANDS */
+(function(Racks,Core,Events,DOM){
+  const MOVE = { n:"n", north:"n", s:"s", south:"s", e:"e", east:"e", w:"w", west:"w" };
+
+  function handle(raw){
+    const cmd = raw.trim().toLowerCase();
+    if (!cmd) return;
+    if (MOVE[cmd]) return Core.move(MOVE[cmd]);
+
+    if (cmd === "help"){
+      Events.emit("log","Commands: n/s/e/w, look, where, help, director, reset, shockwave, crest, fireflies, fog, flash, rotate n/e/s/w");
+      return;
+    }
+    if (cmd === "director"){
+      document.querySelector("#director-panel").classList.toggle("hidden");
+      Events.emit("log","Director panel toggled.");
+      return;
+    }
+    if (cmd === "reset"){
+      resetScene();
+      Events.emit("log","Scene reset.");
+      return;
+    }
+    if (cmd === "shockwave"){
+      triggerShockwave(Core.getCurrentNode());
+      Events.emit("log","Manual shockwave triggered.");
+      return;
+    }
+    if (cmd === "crest"){
+      crestPulse();
+      Events.emit("log","Crest pulse triggered.");
+      return;
+    }
+    if (cmd === "fireflies"){
+      spawnFireflies(8);
+      Events.emit("log","Fireflies spawned.");
+      return;
+    }
+    if (cmd === "fog"){
+      Director.fog = !Director.fog;
+      Events.emit("log",`Fog ${Director.fog ? "enabled" : "disabled"}.`);
+      return;
+    }
+    if (cmd === "flash"){
+      Events.emit("log","Flash (soft) — visual handled by background.");
+      return;
+    }
+    if (cmd.startsWith("rotate")){
+      const parts = cmd.split(" ");
+      const dir = parts[1];
+      if (["n","s","e","w"].includes(dir)){
+        RPG.Core.getState().lastDirection = dir;
+        DKMap.rotateDisc();
+        Events.emit("log",`Disc rotated ${dir.toUpperCase()}.`);
+      }
+      return;
+    }
+
+    Events.emit("log",`Unknown command: ${cmd}`);
+  }
+
+  const input = DOM.q("#console-input");
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter"){
+      handle(input.value);
+      input.value = "";
+    }
+  });
+
+  window.addEventListener("keydown", e => {
+    const k = e.key.toLowerCase();
+    if (k === "w" || k === "arrowup") Core.move("n");
+    if (k === "s" || k === "arrowdown") Core.move("s");
+    if (k === "a" || k === "arrowleft") Core.move("w");
+    if (k === "d" || k === "arrowright") Core.move("e");
+  });
+
+  Racks.Input = { handle };
+})(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+/* DIRECTOR PANEL WIRING (including background lightswitch) */
+(function(){
+  const panel = document.querySelector("#director-panel");
+  document.querySelector("#toggleFog").addEventListener("change", e => Director.fog = e.target.checked);
+  document.querySelector("#toggleFlash").addEventListener("change", e => Director.flash = e.target.checked);
+  document.querySelector("#toggleFireflies").addEventListener("change", e => Director.fireflies = e.target.checked);
+  document.querySelector("#toggleCrest").addEventListener("change", e => Director.crest = e.target.checked);
+  document.querySelector("#toggleRunes").addEventListener("change", e => Director.runes = e.target.checked);
+  document.querySelector("#toggleRotation").addEventListener("change", e => Director.rotation = e.target.checked);
+  document.querySelector("#toggleShockwave").addEventListener("change", e => Director.shockwave = e.target.checked);
+
+  document.querySelector("#resetScene").addEventListener("click", () => {
+    resetScene();
+    RPG.Events.emit("log","Scene reset (director).");
+  });
+  document.querySelector("#triggerShockwave").addEventListener("click", () => {
+    triggerShockwave(RPG.Core.getCurrentNode());
+    RPG.Events.emit("log","Shockwave triggered (director).");
+  });
+
+  panel.querySelectorAll("button[data-bg]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.body.classList.remove("bg-forest","bg-castle","bg-astral");
+      document.body.classList.add(btn.dataset.bg);
+      RPG.Events.emit("log",`Background switched to ${btn.dataset.bg.replace("bg-","")} shell.`);
+    });
+  });
+})();
+
+/* MAP WIDGET SUMMON / RELEASE */
+(function(){
+  const toggle = document.querySelector("#toggleMap");
+  const card = document.querySelector("#mapCard");
+  toggle.addEventListener("click", () => {
+    card.classList.toggle("hidden");
+  });
+})();
+
+/* VITALS INITIAL + BOOT */
+RPG.boot = () => {
+  DKMap.renderNodes();
+  DKMap.updatePlayer();
+  RPG.Events.emit("log","Booting Dreamless Kingdom — Fractured Realm (Breathing Castle‑Grove landscape).");
+  RPG.Events.emit("node:enter", RPG.Core.getCurrentNode());
+  RPG.Events.emit("log","Type 'help' for commands.");
+};
+
+window.addEventListener("DOMContentLoaded", RPG.boot);
+</script>
+</body>
+</html>
