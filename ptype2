@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dreamless Kingdom — Hybrid Grid</title>
+  <style>
+    body {
+      margin:0;
+      background:#000;
+      color:#eee;
+      font-family:monospace;
+    }
+    #grid {
+      display:grid;
+      grid-template-columns: 1.5fr 1fr;
+      grid-template-rows: auto auto 180px;
+      grid-template-areas:
+        "overview overview"
+        "story right"
+        "console console";
+      height:100vh;
+    }
+    #overview { grid-area:overview; padding:10px; background:#0d0d0d; border-bottom:1px solid #333; }
+    #story { grid-area:story; padding:10px; border-right:1px solid #222; overflow-y:auto; }
+    #right { grid-area:right; display:flex; flex-direction:column; }
+    #stats,#inventory,#map,#quests,#merchant,#pvp {
+      padding:8px;
+      background:#111;
+      border-bottom:1px solid #222;
+      font-size:13px;
+      overflow-y:auto;
+    }
+    #console { grid-area:console; padding:8px; background:#050505; border-top:1px solid #333; }
+    #log { height:120px; overflow-y:auto; background:#111; padding:6px; border:1px solid #333; font-size:13px; }
+    #input { width:100%; padding:6px; background:#111; color:#eee; border:none; margin-top:4px; }
+    #overview h3 { margin:0 0 8px 0; color:#0f0; }
+    #overview .section { margin-bottom:8px; padding:6px; background:#111; border:1px solid #333; }
+    #overview .section div { margin:2px 0; }
+    .map-grid { display:flex; flex-direction:column; gap:4px; }
+    .map-row { display:flex; gap:4px; }
+    .map-cell {
+      background:#222;
+      padding:4px 6px;
+      border:1px solid #333;
+      min-width:70px;
+      text-align:center;
+      font-size:11px;
+    }
+    .map-cell.here { background:#444; border-color:#0f0; color:#0f0; font-weight:bold; }
+    #merchant { display:none; }
+    #pvp { display:none; }
+    #pvp h3 { margin:0 0 6px 0; color:#0f0; }
+    #pvp .pvp-log { background:#111; padding:6px; border:1px solid #333; height:90px; overflow-y:auto; font-size:12px; }
+    #fx-screen {
+      position:fixed;
+      inset:0;
+      background:black;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.5s ease;
+      z-index:9998;
+    }
+    #fx-video {
+      position:fixed;
+      inset:0;
+      background:black;
+      z-index:9999;
+      display:none;
+    }
+  </style>
+</head>
+<body>
+  <div id="grid">
+    <div id="overview"></div>
+
+    <div id="story"></div>
+
+    <div id="right">
+      <div id="stats"></div>
+      <div id="inventory"></div>
+      <div id="map"></div>
+      <div id="quests"></div>
+      <div id="merchant"></div>
+      <div id="pvp">
+        <h3>PvP Duel</h3>
+        <div class="pvp-log"></div>
+      </div>
+    </div>
+
+    <div id="console">
+      <div id="log"></div>
+      <input id="input" placeholder=">">
+    </div>
+  </div>
+
+  <!-- FX engines -->
+  <audio id="fx-ambient" loop></audio>
+  <audio id="fx-sfx"></audio>
+  <video id="fx-video"></video>
+  <div id="fx-screen"></div>
+
+  <script>
+    const RPG = { Core:{}, Events:{}, DOM:{}, Racks:{}, boot:null };
+
+    // Wire 1 — Core (state + nodes)
+    (function(Core){
+      const State = {
+        nodeId: "start",
+        stats: { hp: 10, atk: 2, def: 1, insight: 0 },
+        flags: {},
+        inventory: [],
+        equipment: { weapon:null, armor:null, trinket:null },
+        gold: 10,
+        quests: { active:[], completed:[] }
+      };
+
+      const Nodes = {
+        start: {
+          id:"start", zone:"forest", type:"lore",
+          title:"Edge of Memory",
+          text:[
+            "Mist curls around your ankles.",
+            "Something important happened here, but the memory slips away."
+          ],
+          exits:{ n:"path", e:"brook" },
+          itemsOnGround:["rusty_sword"],
+          media:{ ambient:"forest_wind" }
+        },
+        path: {
+          id:"path", zone:"forest", type:"merchant",
+          title:"Whispering Path",
+          text:[
+            "Branches creak overhead.",
+            "Whispers drift between the trees, almost forming words."
+          ],
+          exits:{ s:"start", e:"clearing", w:"roots" },
+          merchant:"forest_vendor",
+          pvpAllowed:true,
+          media:{ ambient:"branch_creak" }
+        },
+        brook: {
+          id:"brook", zone:"forest", type:"lore",
+          title:"Silent Brook",
+          text:[
+            "Water flows without a sound.",
+            "Your reflection ripples into someone else's face."
+          ],
+          exits:{ w:"start", n:"den" },
+          itemsOnGround:["forest_coin"],
+          media:{ ambient:"deep_echo" }
+        },
+        clearing: {
+          id:"clearing", zone:"forest", type:"quest",
+          title:"Moonlit Clearing",
+          text:[
+            "Moonlight pools like silver paint.",
+            "Something glows faintly beneath the grass."
+          ],
+          exits:{ w:"path", n:"altar" },
+          itemsOnGround:["memory_charm"],
+          questTrigger:"forest_memory"
+        },
+        roots: {
+          id:"roots", zone:"forest", type:"pvp",
+          title:"Root-Snarl",
+          text:[
+            "Roots twist like sleeping serpents.",
+            "A faint heartbeat pulses beneath the soil."
+          ],
+          exits:{ e:"path", n:"altar" },
+          pvpAllowed:true
+        },
+        altar: {
+          id:"altar", zone:"forest", type:"lore",
+          title:"Forgotten Altar",
+          text:[
+            "Stone worn smooth by centuries.",
+            "A memory waits here, patient and heavy."
+          ],
+          exits:{ s:"clearing", w:"roots" },
+          media:{ ambient:"deep_echo" },
+          videoCutscene:"memory_flash",
+          questComplete:"forest_memory"
+        }
+      };
+
+      Core.getState = () => State;
+      Core.getNode = id => Nodes[id];
+      Core.getCurrentNode = () => Core.getNode(State.nodeId);
+      Core.Nodes = Nodes;
+
+      Core.move = dir => {
+        const node = Core.getCurrentNode();
+        const destId = node.exits?.[dir];
+        if (!destId) return RPG.Events.emit("log", `You cannot go ${dir} from here.`);
+        State.nodeId = destId;
+        RPG.Events.emit("node:enter", Core.getCurrentNode());
+      };
+    })(RPG.Core);
+
+    // Wire 2 — Events
+    (function(Events){
+      const listeners = {};
+      Events.on = (t,f) => (listeners[t] ||= []).push(f);
+      Events.emit = (t,p) => (listeners[t] || []).forEach(fn => fn(p));
+    })(RPG.Events);
+
+    // Wire 3 — DOM / media
+    (function(DOM,Events,Core){
+      DOM.q = sel => document.querySelector(sel);
+
+      Events.on("log", msg => {
+        const log = DOM.q("#log");
+        log.innerHTML += `<div>${msg}</div>`;
+        log.scrollTop = log.scrollHeight;
+      });
+
+      Events.on("node:enter", node => {
+        const story = DOM.q("#story");
+        story.innerHTML =
+          `<h2>${node.title}</h2>` +
+          node.text.map(t => `<p>${t}</p>`).join("");
+        Events.emit("media:ambient", node.media?.ambient || null);
+      });
+    })(RPG.DOM, RPG.Events, RPG.Core);
+
+    // Items DB
+    RPG.Items = {
+      db:{
+        rusty_sword:{ id:"rusty_sword", name:"Rusty Sword", type:"weapon", atk:+2,
+          flavor:"It remembers better days than you do." },
+        tattered_cloak:{ id:"tattered_cloak", name:"Tattered Cloak", type:"armor", def:+1,
+          flavor:"Smells like old rain and older secrets." },
+        memory_charm:{ id:"memory_charm", name:"Memory Charm", type:"trinket", insight:+1,
+          flavor:"It hums when you almost remember." },
+        forest_coin:{ id:"forest_coin", name:"Forest Coin", type:"misc",
+          flavor:"A coin minted by something that isn't human." }
+      }
+    };
+
+    // Merchants DB
+    RPG.Merchants = {
+      db:{
+        forest_vendor:{
+          id:"forest_vendor",
+          name:"Wandering Merchant",
+          items:[
+            { id:"tattered_cloak", price:8 },
+            { id:"memory_charm", price:12 },
+            { id:"forest_coin", price:3 }
+          ]
+        }
+      }
+    };
+
+    // Quests DB
+    RPG.Quests = {
+      db:{
+        forest_memory:{
+          id:"forest_memory",
+          name:"Echoes in the Forest",
+          description:"Recover a fragment of your memory hidden in the Whispering Path.",
+          startNode:"start",
+          completeNode:"altar",
+          reward:{ insight:1, gold:5 }
+        }
+      }
+    };
+
+    // FX DB
+    RPG.FX = {
+      ambient:{
+        forest_wind:"forest_wind.mp3",
+        branch_creak:"branch_creak.mp3",
+        deep_echo:"deep_echo.mp3"
+      },
+      sfx:{
+        hit:"hit.mp3",
+        equip:"equip.mp3",
+        buy:"buy.mp3",
+        quest:"quest_complete.mp3"
+      },
+      video:{
+        intro:"intro.mp4",
+        memory_flash:"memory_flash.mp4"
+      }
+    };
+
+    // Input rack
+    (function(Racks,Core,Events,DOM){
+      const MOVE = { n:"n", north:"n", s:"s", south:"s", e:"e", east:"e", w:"w", west:"w" };
+
+      function handle(raw){
+        const cmd = raw.trim().toLowerCase();
+        if (!cmd) return;
+        if (MOVE[cmd]) return Core.move(MOVE[cmd]);
+        Events.emit("trigger:word", cmd);
+      }
+
+      const input = DOM.q("#input");
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          handle(input.value);
+          input.value = "";
+        }
+      });
+
+      window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if (k === "w" || k === "arrowup") Core.move("n");
+        if (k === "s" || k === "arrowdown") Core.move("s");
+        if (k === "a" || k === "arrowleft") Core.move("w");
+        if (k === "d" || k === "arrowright") Core.move("e");
+      });
+
+      Racks.Input = { handle };
+    })(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+    // Items rack
+    (function(Racks,Core,Events){
+      const ItemsRack = {};
+
+      function addToInventory(itemId){
+        const item = RPG.Items.db[itemId];
+        if (!item) return Events.emit("log", `Unknown item: ${itemId}`);
+        Core.getState().inventory.push(itemId);
+        Events.emit("log", `You pick up: ${item.name}`);
+        Events.emit("inventory:update");
+      }
+
+      function drop(itemId){
+        const inv = Core.getState().inventory;
+        const idx = inv.indexOf(itemId);
+        if (idx === -1) return Events.emit("log", "You don't have that item.");
+        inv.splice(idx,1);
+        Events.emit("log", `You drop: ${RPG.Items.db[itemId].name}`);
+        Events.emit("inventory:update");
+      }
+
+      function equip(itemId){
+        const st = Core.getState();
+        if (!st.inventory.includes(itemId))
+          return Events.emit("log", `You don't have that item.`);
+        const item = RPG.Items.db[itemId];
+        const slot = item.type;
+        const current = st.equipment[slot];
+        if (current) applyStats(current,-1);
+        st.equipment[slot] = itemId;
+        applyStats(itemId,+1);
+        Events.emit("log", `You equip: ${item.name}`);
+        Events.emit("stats:update");
+        Events.emit("inventory:update");
+        RPG.Events.emit("media:sfx","equip");
+      }
+
+      function unequip(slot){
+        const st = Core.getState();
+        const currentId = st.equipment[slot];
+        if (!currentId) return Events.emit("log", `Nothing equipped in ${slot}.`);
+        applyStats(currentId,-1);
+        st.equipment[slot] = null;
+        Events.emit("log", `You remove: ${RPG.Items.db[currentId].name}`);
+        Events.emit("stats:update");
+        Events.emit("inventory:update");
+      }
+
+      function applyStats(itemId,dir){
+        const item = RPG.Items.db[itemId];
+        const s = Core.getState().stats;
+        if (item.atk) s.atk += dir*item.atk;
+        if (item.def) s.def += dir*item.def;
+        if (item.insight) s.insight += dir*item.insight;
+      }
+
+      Events.on("trigger:word", cmd => {
+        const parts = cmd.split(" ");
+        if (parts[0] === "take" && parts[1]) addToInventory(parts[1]);
+        if (parts[0] === "drop" && parts[1]) drop(parts[1]);
+        if (parts[0] === "equip" && parts[1]) equip(parts[1]);
+        if (parts[0] === "unequip" && parts[1]) unequip(parts[1]);
+      });
+
+      ItemsRack.addToInventory = addToInventory;
+      ItemsRack.drop = drop;
+      ItemsRack.equip = equip;
+      ItemsRack.unequip = unequip;
+
+      Racks.Items = ItemsRack;
+    })(RPG.Racks, RPG.Core, RPG.Events);
+
+    // Merchant rack
+    (function(Racks,Core,Events,DOM){
+      const MerchantRack = { current:null };
+
+      MerchantRack.open = id => {
+        const merchant = RPG.Merchants.db[id];
+        if (!merchant) return Events.emit("log","Merchant not found.");
+        MerchantRack.current = merchant;
+        const el = DOM.q("#merchant");
+        el.style.display = "block";
+        MerchantRack.render();
+        Events.emit("log", `You approach ${merchant.name}.`);
+      };
+
+      MerchantRack.close = () => {
+        MerchantRack.current = null;
+        DOM.q("#merchant").style.display = "none";
+      };
+
+      MerchantRack.render = () => {
+        const el = DOM.q("#merchant");
+        const st = Core.getState();
+        const m = MerchantRack.current;
+        let html = `<h3>${m.name}</h3>`;
+        html += `<div>Gold: ${st.gold}</div>`;
+        html += `<div class="merchant-items">`;
+        for (let item of m.items) {
+          const data = RPG.Items.db[item.id];
+          html += `<div>${data.name} — ${item.price} gold</div>`;
+        }
+        html += `</div><p>Commands: buy [item], sell [item], leave</p>`;
+        el.innerHTML = html;
+      };
+
+      MerchantRack.buy = itemId => {
+        const st = Core.getState();
+        const m = MerchantRack.current;
+        if (!m) return Events.emit("log","No merchant here.");
+        const entry = m.items.find(i => i.id === itemId);
+        if (!entry) return Events.emit("log","Item not sold here.");
+        if (st.gold < entry.price) return Events.emit("log","Not enough gold.");
+        st.gold -= entry.price;
+        RPG.Racks.Items.addToInventory(itemId);
+        Events.emit("log", `You buy ${RPG.Items.db[itemId].name}.`);
+        RPG.Events.emit("media:sfx","buy");
+        MerchantRack.render();
+      };
+
+      MerchantRack.sell = itemId => {
+        const st = Core.getState();
+        if (!st.inventory.includes(itemId))
+          return Events.emit("log","You don't have that item.");
+        const m = MerchantRack.current;
+        if (!m) return Events.emit("log","No merchant here.");
+        const base = RPG.Items.db[itemId];
+        const price = Math.floor((base.atk||base.def||base.insight||1)*2);
+        st.gold += price;
+        RPG.Racks.Items.drop(itemId);
+        Events.emit("log", `You sell ${base.name} for ${price} gold.`);
+        MerchantRack.render();
+      };
+
+      Events.on("trigger:word", cmd => {
+        const parts = cmd.split(" ");
+        if (cmd === "leave") MerchantRack.close();
+        if (parts[0] === "buy" && parts[1]) MerchantRack.buy(parts[1]);
+        if (parts[0] === "sell" && parts[1]) MerchantRack.sell(parts[1]);
+      });
+
+      Events.on("node:enter", node => {
+        if (node.merchant) MerchantRack.open(node.merchant);
+        else MerchantRack.close();
+      });
+
+      Racks.Merchant = MerchantRack;
+    })(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+    // Quests rack
+    (function(Racks,Core,Events){
+      const QuestRack = {};
+
+      function startQuest(id){
+        const q = RPG.Quests.db[id];
+        if (!q) return;
+        const st = Core.getState();
+        if (st.quests.active.includes(id) || st.quests.completed.includes(id)) return;
+        st.quests.active.push(id);
+        Events.emit("log", `Quest started: ${q.name}`);
+        Events.emit("quests:update");
+        RPG.Events.emit("media:sfx","quest");
+      }
+
+      function completeQuest(id){
+        const q = RPG.Quests.db[id];
+        if (!q) return;
+        const st = Core.getState();
+        const idx = st.quests.active.indexOf(id);
+        if (idx === -1) return;
+        st.quests.active.splice(idx,1);
+        st.quests.completed.push(id);
+        if (q.reward){
+          if (q.reward.insight) st.stats.insight += q.reward.insight;
+          if (q.reward.gold) st.gold += q.reward.gold;
+          Events.emit("stats:update");
+        }
+        Events.emit("log", `Quest completed: ${q.name}`);
+        Events.emit("quests:update");
+      }
+
+      Events.on("node:enter", node => {
+        const st = Core.getState();
+        for (let id in RPG.Quests.db){
+          const q = RPG.Quests.db[id];
+          if (node.id === q.startNode &&
+              !st.quests.active.includes(id) &&
+              !st.quests.completed.includes(id)) {
+            startQuest(id);
+          }
+        }
+        for (let id of st.quests.active){
+          const q = RPG.Quests.db[id];
+          if (node.id === q.completeNode) completeQuest(id);
+        }
+      });
+
+      Events.on("trigger:word", cmd => {
+        if (cmd === "quests") Events.emit("quests:show");
+      });
+
+      QuestRack.startQuest = startQuest;
+      QuestRack.completeQuest = completeQuest;
+
+      Racks.Quests = QuestRack;
+    })(RPG.Racks, RPG.Core, RPG.Events);
+
+    // PvP rack
+    (function(Racks,Core,Events,DOM){
+      const PvP = {
+        active:false,
+        enemy:null,
+        logEl:null
+      };
+
+      PvP.start = enemyName => {
+        const st = Core.getState();
+        PvP.active = true;
+        PvP.enemy = { name:enemyName, hp:12, atk:2, def:1 };
+        const el = DOM.q("#pvp");
+        PvP.logEl = DOM.q("#pvp .pvp-log");
+        el.style.display = "block";
+        PvP.logEl.innerHTML = "";
+        PvP.log(`You challenge ${enemyName}!`);
+        PvP.log(`${enemyName} accepts.`);
+        Events.emit("pvp:start", PvP.enemy);
+        PvP.playerTurn();
+      };
+
+      PvP.log = msg => {
+        PvP.logEl.innerHTML += `<div>${msg}</div>`;
+        PvP.logEl.scrollTop = PvP.logEl.scrollHeight;
+      };
+
+      PvP.playerTurn = () => {
+        PvP.log("Your turn. Type: attack, defend, special");
+      };
+
+      PvP.enemyTurn = () => {
+        const enemy = PvP.enemy;
+        const dmg = Math.max(1, enemy.atk - Core.getState().stats.def);
+        Core.getState().stats.hp -= dmg;
+        PvP.log(`${enemy.name} hits you for ${dmg} damage.`);
+        RPG.Events.emit("media:sfx","hit");
+        Events.emit("stats:update");
+        if (Core.getState().stats.hp <= 0) PvP.end("defeat");
+        else PvP.playerTurn();
+      };
+
+      PvP.attack = () => {
+        const st = Core.getState();
+        const enemy = PvP.enemy;
+        const dmg = Math.max(1, st.stats.atk - enemy.def);
+        enemy.hp -= dmg;
+        PvP.log(`You strike ${enemy.name} for ${dmg} damage.`);
+        RPG.Events.emit("media:sfx","hit");
+        if (enemy.hp <= 0) PvP.end("victory");
+        else PvP.enemyTurn();
+      };
+
+      PvP.defend = () => {
+        PvP.log("You brace yourself (+1 temporary defense).");
+        Core.getState().stats.def += 1;
+        setTimeout(() => Core.getState().stats.def -= 1, 1000);
+        PvP.enemyTurn();
+      };
+
+      PvP.special = () => {
+        const st = Core.getState();
+        const enemy = PvP.enemy;
+        const dmg = Math.max(2, st.stats.insight + st.stats.atk);
+        enemy.hp -= dmg;
+        PvP.log(`You unleash a memory surge for ${dmg} damage!`);
+        RPG.Events.emit("media:sfx","hit");
+        if (enemy.hp <= 0) PvP.end("victory");
+        else PvP.enemyTurn();
+      };
+
+      PvP.end = result => {
+        PvP.active = false;
+        if (result === "victory") {
+          PvP.log(`You defeated ${PvP.enemy.name}!`);
+          Events.emit("log","You win the duel.");
+        } else {
+          PvP.log(`You were defeated by ${PvP.enemy.name}.`);
+          Events.emit("log","You lose the duel.");
+        }
+        setTimeout(() => { DOM.q("#pvp").style.display = "none"; }, 2000);
+        Events.emit("pvp:end", result);
+      };
+
+      Events.on("trigger:word", cmd => {
+        if (cmd.startsWith("challenge ")) {
+          const name = cmd.split(" ")[1];
+          PvP.start(name);
+        }
+        if (!PvP.active) return;
+        if (cmd === "attack") PvP.attack();
+        if (cmd === "defend") PvP.defend();
+        if (cmd === "special") PvP.special();
+      });
+
+      Racks.PvP = PvP;
+    })(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+    // FX rack
+    (function(Racks,Events,DOM){
+      const FX = {};
+
+      FX.playAmbient = id => {
+        if (!id) return;
+        const src = RPG.FX.ambient[id];
+        if (!src) return;
+        const audio = DOM.q("#fx-ambient");
+        audio.src = src;
+        audio.volume = 0.5;
+        audio.play();
+      };
+
+      FX.playSFX = id => {
+        const src = RPG.FX.sfx[id];
+        if (!src) return;
+        const audio = DOM.q("#fx-sfx");
+        audio.src = src;
+        audio.volume = 0.7;
+        audio.play();
+      };
+
+      FX.playVideo = id => {
+        const src = RPG.FX.video[id];
+        if (!src) return;
+        const video = DOM.q("#fx-video");
+        video.src = src;
+        video.style.display = "block";
+        video.play();
+        video.onended = () => { video.style.display = "none"; };
+      };
+
+      FX.flash = () => {
+        const screen = DOM.q("#fx-screen");
+        screen.style.opacity = 1;
+        setTimeout(() => screen.style.opacity = 0, 200);
+      };
+
+      FX.fadeIn = () => { DOM.q("#fx-screen").style.opacity = 1; };
+      FX.fadeOut = () => { DOM.q("#fx-screen").style.opacity = 0; };
+
+      Events.on("media:ambient", id => FX.playAmbient(id));
+      Events.on("media:sfx", id => FX.playSFX(id));
+      Events.on("media:video", id => FX.playVideo(id));
+
+      Events.on("trigger:word", cmd => {
+        if (cmd === "flash") FX.flash();
+        if (cmd === "fadein") FX.fadeIn();
+        if (cmd === "fadeout") FX.fadeOut();
+        if (cmd.startsWith("video ")) FX.playVideo(cmd.split(" ")[1]);
+      });
+
+      Racks.FX = FX;
+    })(RPG.Racks, RPG.Events, RPG.DOM);
+
+    // Display rack (stats + inventory + map + quests)
+    (function(Racks,Events,Core,DOM){
+      function renderStats(){
+        const el = DOM.q("#stats");
+        const s = Core.getState().stats;
+        const g = Core.getState().gold;
+        el.innerHTML =
+          `<h3>Stats</h3>
+           <div>HP: ${s.hp}</div>
+           <div>ATK: ${s.atk}</div>
+           <div>DEF: ${s.def}</div>
+           <div>Insight: ${s.insight}</div>
+           <div>Gold: ${g}</div>`;
+      }
+
+      function renderInventory(){
+        const el = DOM.q("#inventory");
+        const st = Core.getState();
+        const items = st.inventory.map(id => RPG.Items.db[id]);
+        const eq = st.equipment;
+        let html = `<h3>Inventory</h3><ul>`;
+        for (let item of items) html += `<li>${item.name} (${item.type})</li>`;
+        html += `</ul><h3>Equipment</h3>`;
+        html += `<div>Weapon: ${eq.weapon ? RPG.Items.db[eq.weapon].name : "-"}</div>`;
+        html += `<div>Armor: ${eq.armor ? RPG.Items.db[eq.armor].name : "-"}</div>`;
+        html += `<div>Trinket: ${eq.trinket ? RPG.Items.db[eq.trinket].name : "-"}</div>`;
+        el.innerHTML = html;
+      }
+
+      const MapRack = {
+        zones:{
+          forest:{
+            name:"Whispering Forest",
+            grid:[
+              ["start","path","clearing"],
+              ["brook","roots","altar"]
+            ]
+          }
+        },
+        currentZone:"forest",
+        render(){
+          const zone = MapRack.zones[MapRack.currentZone];
+          const el = DOM.q("#map");
+          const playerNode = Core.getState().nodeId;
+          let html = `<h3>Map</h3><div class="map-grid">`;
+          for (let row of zone.grid){
+            html += `<div class="map-row">`;
+            for (let cell of row){
+              const node = Core.getNode(cell);
+              const isPlayer = (cell === playerNode);
+              const merchantIcon = node.merchant ? "🛒" : "";
+              const itemIcon = node.itemsOnGround?.length ? "📦" : "";
+              const pvpIcon = node.pvpAllowed ? "⚔️" : "";
+              const questIcon = node.questTrigger ? "❗" : "";
+              html += `<div class="map-cell ${isPlayer?"here":""}">
+                         ${merchantIcon}${itemIcon}${pvpIcon}${questIcon}
+                         <div>${node ? node.title : "?"}</div>
+                       </div>`;
+            }
+            html += `</div>`;
+          }
+          html += `</div>`;
+          el.innerHTML = html;
+        }
+      };
+
+      function renderQuests(){
+        const el = DOM.q("#quests");
+        const st = Core.getState();
+        let html = `<h3>Quests</h3><div><strong>Active</strong></div><ul>`;
+        for (let id of st.quests.active){
+          const q = RPG.Quests.db[id];
+          html += `<li>${q.name} — ${q.description}</li>`;
+        }
+        html += `</ul><div><strong>Completed</strong></div><ul>`;
+        for (let id of st.quests.completed){
+          const q = RPG.Quests.db[id];
+          html += `<li>${q.name}</li>`;
+        }
+        html += `</ul>`;
+        el.innerHTML = html;
+      }
+
+      Events.on("node:enter", () => {
+        renderStats();
+        renderInventory();
+        MapRack.render();
+        renderQuests();
+      });
+      Events.on("stats:update", renderStats);
+      Events.on("inventory:update", () => { renderInventory(); MapRack.render(); });
+      Events.on("quests:update", renderQuests);
+
+      Racks.Display = { renderStats, renderInventory, Map:MapRack, renderQuests };
+    })(RPG.Racks, RPG.Events, RPG.Core, RPG.DOM);
+
+    // Overview rack
+    (function(Racks,Core,Events,DOM){
+      const Overview = {};
+      Overview.render = () => {
+        const el = DOM.q("#overview");
+        const st = Core.getState();
+        const node = Core.getCurrentNode();
+        const eq = st.equipment;
+        let html = `<h3>Overview</h3>`;
+        html += `<div class="section">
+                   <div><strong>Location:</strong> ${node.title}</div>
+                   <div><strong>Zone:</strong> ${node.zone}</div>
+                   <div><strong>Type:</strong> ${node.type}</div>
+                 </div>`;
+        html += `<div class="section">
+                   <div><strong>HP:</strong> ${st.stats.hp}</div>
+                   <div><strong>ATK:</strong> ${st.stats.atk}</div>
+                   <div><strong>DEF:</strong> ${st.stats.def}</div>
+                   <div><strong>Insight:</strong> ${st.stats.insight}</div>
+                   <div><strong>Gold:</strong> ${st.gold}</div>
+                 </div>`;
+        html += `<div class="section">
+                   <div><strong>Weapon:</strong> ${eq.weapon ? RPG.Items.db[eq.weapon].name : "-"}</div>
+                   <div><strong>Armor:</strong> ${eq.armor ? RPG.Items.db[eq.armor].name : "-"}</div>
+                   <div><strong>Trinket:</strong> ${eq.trinket ? RPG.Items.db[eq.trinket].name : "-"}</div>
+                 </div>`;
+        html += `<div class="section">
+                   <div><strong>Inventory:</strong> ${st.inventory.length} items</div>
+                 </div>`;
+        html += `<div class="section">
+                   <div><strong>Active Quests:</strong> ${st.quests.active.length}</div>
+                   <div><strong>Completed:</strong> ${st.quests.completed.length}</div>
+                 </div>`;
+        html += `<div class="section">
+                   <div><strong>PvP Status:</strong> ${RPG.Racks.PvP && RPG.Racks.PvP.active ? "In Duel" : "Idle"}</div>
+                 </div>`;
+        el.innerHTML = html;
+      };
+
+      Events.on("node:enter", Overview.render);
+      Events.on("stats:update", Overview.render);
+      Events.on("inventory:update", Overview.render);
+      Events.on("quests:update", Overview.render);
+      Events.on("pvp:start", Overview.render);
+      Events.on("pvp:end", Overview.render);
+
+      Events.on("trigger:word", cmd => {
+        if (cmd === "overview") {
+          Overview.render();
+          RPG.Events.emit("log","Overview refreshed.");
+        }
+      });
+
+      Racks.Overview = Overview;
+    })(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+    // Node extra events (quests + video)
+    RPG.Events.on("node:enter", node => {
+      if (node.videoCutscene) RPG.Events.emit("media:video", node.videoCutscene);
+    });
+
+    // Console helper commands
+    RPG.Events.on("trigger:word", cmd => {
+      if (cmd === "look") {
+        const node = RPG.Core.getCurrentNode();
+        RPG.Events.emit("log", node.text.join(" "));
+      }
+      if (cmd === "where") {
+        const node = RPG.Core.getCurrentNode();
+        RPG.Events.emit("log", `You are at: ${node.title} (${node.zone})`);
+      }
+      if (cmd === "help") {
+        RPG.Events.emit("log",
+          "Commands: n/s/e/w, look, where, quests, overview, take [item], equip [item], unequip [slot], buy [item], sell [item], leave, challenge [name], attack, defend, special, flash, fadein, fadeout, video [id]");
+      }
+    });
+
+    // Boot
+    RPG.boot = () => {
+      RPG.Events.emit("log","Booting Dreamless Kingdom (Hybrid Grid)...");
+      RPG.Events.emit("node:enter", RPG.Core.getCurrentNode());
+      RPG.Racks.Overview.render();
+      RPG.Events.emit("log","Type 'help' for commands.");
+    };
+
+    window.addEventListener("DOMContentLoaded", RPG.boot);
+  </script>
+</body>
+</html>
