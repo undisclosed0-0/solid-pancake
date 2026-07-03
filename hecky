@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dreamless Kingdom</title>
+  <style>
+    body {
+      margin: 0;
+      background: rgba(5, 3, 8, 0.2);
+      color: #f5f0ff;
+      font-family: "Georgia", serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at center, #1a1128 0%, #05030a 50%, #000 100%);
+      transition: filter 1.5s ease, transform 1.5s ease, background 1.5s ease;
+    }
+
+    #glyphs {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      background-image: url('glyphs.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      animation: glyphPulse 6s ease-out forwards;
+    }
+    @keyframes glyphPulse {
+      0%   { opacity: 0; transform: scale(0.8); }
+      20%  { opacity: 1; transform: scale(1); }
+      80%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.2); }
+    }
+
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    #app {
+      position: relative;
+      z-index: 1;
+      background: rgba(8, 6, 16, 0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(190,160,255,0.35);
+      border-radius: 12px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+      padding: 1.5rem 2rem 80px;
+      max-width: 1100px;
+      margin: 2rem auto;
+    }
+
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    #game-title {
+      font-size: 1.4rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    #header-meta {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+    #header-meta span + span {
+      margin-left: 0.75rem;
+    }
+
+    #story-feed {
+      min-height: 150px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      background: radial-gradient(circle at top left, rgba(40, 30, 70, 0.7), rgba(10, 8, 20, 0.95));
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-top: 0.75rem;
+    }
+    #story-feed h2 {
+      margin: 0 0 0.4rem;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    #mid-row {
+      display: grid;
+      grid-template-columns: 1.1fr 1.2fr;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    #compass-panel,
+    #vitals-panel {
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(12, 10, 24, 0.95);
+      font-size: 0.85rem;
+    }
+    #compass-title,
+    #vitals-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 0.35rem;
+    }
+    #compass-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.1rem;
+      margin-top: 0.25rem;
+      font-family: "Courier New", monospace;
+    }
+    .compass-cell {
+      height: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.7;
+    }
+    .compass-dir { font-weight: bold; }
+    .compass-current {
+      color: #c9b3ff;
+      text-shadow: 0 0 6px rgba(200, 180, 255, 0.9);
+      opacity: 1;
+    }
+    #compass-text {
+      margin-top: 0.35rem;
+      opacity: 0.8;
+      min-height: 1.2rem;
+    }
+    #vitals-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.1rem 0 0;
+    }
+    #vitals-list li { margin-bottom: 0.15rem; }
+    #vitals-list span.value {
+      font-weight: bold;
+      color: #e4d4ff;
+    }
+
+    #log-panel {
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(10, 8, 20, 0.96);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 160px;
+      max-height: 260px;
+      margin-top: 0.75rem;
+    }
+    #log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.25rem;
+    }
+    #log-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+    #log-tabs {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+    #log-tabs span {
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+    #log-tabs span.active {
+      color: #e4d4ff;
+      text-decoration: underline;
+      opacity: 1;
+    }
+    #log-body {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 0.25rem;
+      padding-right: 0.25rem;
+    }
+    .log-line { margin-bottom: 0.15rem; white-space: pre-wrap; }
+    .log-line.system { color: #9b8ad8; }
+    .log-line.command { color: #c0ffc0; }
+    .log-line.world { color: #f0e4ff; }
+
+    #console-panel {
+      margin-top: 0.4rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid rgba(120, 100, 190, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.9rem;
+    }
+    #console-label { color: #9b8ad8; }
+    #console-input {
+      flex: 1;
+      background: rgba(8, 6, 16, 0.95);
+      border-radius: 4px;
+      border: 1px solid rgba(150, 130, 230, 0.6);
+      color: #f5f0ff;
+      padding: 0.35rem 0.5rem;
+      outline: none;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+    #console-input:focus {
+      box-shadow: 0 0 12px rgba(180, 150, 255, 0.8);
+    }
+    #console-hint {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-left: 0.25rem;
+    }
+
+    #sidebar {
+      margin-top: 0.75rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    #mapCard {
+      display: flex;
+      flex-direction: column;
+      height: 260px;
+      min-height: 220px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: linear-gradient(180deg,#07121a,#041018);
+      border: 6px solid rgba(255,255,255,0.03);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    }
+    #mapViewport {
+      flex: 1 1 auto;
+      padding: 6px;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .map-grid { display:flex; flex-direction:column; gap:4px; }
+    .map-row { display:flex; gap:4px; }
+    .map-cell {
+      background:#222;
+      padding:4px 6px;
+      border:1px solid #333;
+      min-width:70px;
+      text-align:center;
+      font-size:11px;
+    }
+    .map-cell.here {
+      background:#444;
+      border-color:#0f0;
+      color:#0f0;
+      font-weight:bold;
+    }
+
+    @media (max-width: 900px) {
+      #app {
+        margin: 0.5rem;
+        height: calc(100dvh - 1rem);
+      }
+      #mid-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scene"></div>
+  <div id="glyphs"></div>
+  <div id="flash"></div>
+
+  <div id="app">
+    <header id="header">
+      <div id="game-title">Dreamless Kingdom</div>
+      <div id="header-meta">
+        <span id="meta-location">Unknown Forest</span>
+        <span id="meta-time">Nightfall</span>
+      </div>
+    </header>
+
+    <section id="story-feed">
+      <h2 id="story-title">The Forest at the Edge of Memory</h2>
+      <div id="story-body"></div>
+    </section>
+
+    <section id="mid-row">
+      <div id="compass-panel">
+        <div id="compass-title">Direction</div>
+        <div id="compass-grid">
+          <div class="compass-cell compass-dir" data-dir="NW">NW</div>
+          <div class="compass-cell compass-dir" data-dir="N">N</div>
+          <div class="compass-cell compass-dir" data-dir="NE">NE</div>
+          <div class="compass-cell compass-dir" data-dir="W">W</div>
+          <div class="compass-cell" id="compass-center">✦</div>
+          <div class="compass-cell compass-dir" data-dir="E">E</div>
+          <div class="compass-cell compass-dir" data-dir="SW">SW</div>
+          <div class="compass-cell compass-dir" data-dir="S">S</div>
+          <div class="compass-cell compass-dir" data-dir="SE">SE</div>
+        </div>
+        <div id="compass-text"></div>
+      </div>
+
+      <div id="vitals-panel">
+        <div id="vitals-title">Vitals</div>
+        <ul id="vitals-list"></ul>
+      </div>
+    </section>
+
+    <section id="log-panel">
+      <div id="log-header">
+        <div id="log-title">Action Log</div>
+        <div id="log-tabs">
+          <span data-tab="log" class="active">log</span>
+          <span data-tab="board">board</span>
+        </div>
+      </div>
+      <div id="log-body"></div>
+
+      <section id="console-panel">
+        <div id="console-label">&gt;</div>
+        <input id="console-input" type="text" autocomplete="off" spellcheck="false" />
+        <div id="console-hint">Type "help" for commands</div>
+      </section>
+    </section>
+
+    <section id="sidebar">
+      <div id="mapCard">
+        <div id="mapViewport">
+          <div id="map"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const RPG = { Core:{}, Events:{}, DOM:{}, Racks:{}, boot:null };
+
+    (function(Core){
+      const State = {
+        nodeId: "start",
+        stats: { hp: 10, atk: 2, def: 1, insight: 0 },
+        flags: {},
+        inventory: [],
+        equipment: { weapon:null, armor:null, trinket:null },
+        gold: 10,
+        quests: { active:[], completed:[] },
+        lastDirection: null
+      };
+
+      const Nodes = {
+        start: {
+          id:"start", zone:"forest", type:"lore",
+          title:"Edge of Memory",
+          text:[
+            "Mist curls around your ankles.",
+            "Something important happened here, but the memory slips away."
+          ],
+          exits:{ n:"path", e:"brook" },
+          itemsOnGround:["rusty_sword"],
+          media:{ ambient:"forest_wind" }
+        },
+        path: {
+          id:"path", zone:"forest", type:"merchant",
+          title:"Whispering Path",
+          text:[
+            "Branches creak overhead.",
+            "Whispers drift between the trees, almost forming words."
+          ],
+          exits:{ s:"start", e:"clearing", w:"roots" },
+          merchant:"forest_vendor",
+          pvpAllowed:true,
+          media:{ ambient:"branch_creak" }
+        },
+        brook: {
+          id:"brook", zone:"forest", type:"lore",
+          title:"Silent Brook",
+          text:[
+            "Water flows without a sound.",
+            "Your reflection ripples into someone else's face."
+          ],
+          exits:{ w:"start", n:"den" },
+          itemsOnGround:["forest_coin"],
+          media:{ ambient:"deep_echo" }
+        },
+        clearing: {
+          id:"clearing", zone:"forest", type:"quest",
+          title:"Moonlit Clearing",
+          text:[
+            "Moonlight pools like silver paint.",
+            "Something glows faintly beneath the grass."
+          ],
+          exits:{ w:"path", n:"altar" },
+          itemsOnGround:["memory_charm"],
+          questTrigger:"forest_memory"
+        },
+        roots: {
+          id:"roots", zone:"forest", type:"pvp",
+          title:"Root-Snarl",
+          text:[
+            "Roots twist like sleeping serpents.",
+            "A faint heartbeat pulses beneath the soil."
+          ],
+          exits:{ e:"path", n:"altar" },
+          pvpAllowed:true
+        },
+        altar: {
+          id:"altar", zone:"forest", type:"lore",
+          title:"Forgotten Altar",
+          text:[
+            "Stone worn smooth by centuries.",
+            "A memory waits here, patient and heavy."
+          ],
+          exits:{ s:"clearing", w:"roots" },
+          media:{ ambient:"deep_echo" },
+          videoCutscene:"memory_flash",
+          questComplete:"forest_memory"
+        }
+      };
+
+      Core.getState = () => State;
+      Core.getNode = id => Nodes[id];
+      Core.getCurrentNode = () => Core.getNode(State.nodeId);
+      Core.Nodes = Nodes;
+
+      Core.move = dir => {
+        const node = Core.getCurrentNode();
+        const destId = node.exits?.[dir];
+        if (!destId) return RPG.Events.emit("log", `You cannot go ${dir} from here.`);
+        State.nodeId = destId;
+        State.lastDirection = dir;
+        RPG.Events.emit("node:enter", Core.getCurrentNode());
+      };
+    })(RPG.Core);
+
+    (function(Events){
+      const listeners = {};
+      Events.on = (t,f) => (listeners[t] ||= []).push(f);
+      Events.emit = (t,p) => (listeners[t] || []).forEach(fn => fn(p));
+    })(RPG.Events);
+
+    (function(DOM,Events,Core){
+      DOM.q = sel => document.querySelector(sel);
+
+      const logBuffer = [];
+      const boardBuffer = [];
+
+      Events.on("log", msg => {
+        logBuffer.push(`<div class="log-line world">${msg}</div>`);
+        const body = DOM.q("#log-body");
+        const active = document.querySelector("#log-tabs span.active")?.dataset.tab || "log";
+        if (active === "log") body.innerHTML = logBuffer.join("");
+        body.scrollTop = body.scrollHeight;
+      });
+
+      Events.on("board", msg => {
+        boardBuffer.push(`<div class="log-line board">${msg}</div>`);
+        const body = DOM.q("#log-body");
+        const active = document.querySelector("#log-tabs span.active")?.dataset.tab || "log";
+        if (active === "board") body.innerHTML = boardBuffer.join("");
+      });
+
+      document.querySelectorAll("#log-tabs span").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll("#log-tabs span").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          const body = DOM.q("#log-body");
+          if (tab.dataset.tab === "log") body.innerHTML = logBuffer.join("");
+          if (tab.dataset.tab === "board") body.innerHTML = boardBuffer.join("");
+        });
+      });
+
+      Events.on("node:enter", node => {
+        const storyBody = DOM.q("#story-body");
+        DOM.q("#story-title").textContent = node.title;
+        storyBody.innerHTML = node.text.map(t => `<p>${t}</p>`).join("");
+
+        const dir = RPG.Core.getState().lastDirection;
+        const compassCells = document.querySelectorAll(".compass-cell");
+        compassCells.forEach(cell => cell.classList.remove("compass-current"));
+        if (dir) {
+          const current = document.querySelector(`.compass-cell[data-dir="${dir.toUpperCase()}"]`);
+          if (current) current.classList.add("compass-current");
+          DOM.q("#compass-text").textContent = `You moved ${dir.toUpperCase()}`;
+        } else {
+          DOM.q("#compass-text").textContent = "";
+        }
+
+        Events.emit("stats:update");
+        MapRack.render();
+      });
+    })(RPG.DOM, RPG.Events, RPG.Core);
+
+    RPG.Items = {
+      db:{
+        rusty_sword:{ id:"rusty_sword", name:"Rusty Sword", type:"weapon", atk:+2,
+          flavor:"It remembers better days than you do." },
+        tattered_cloak:{ id:"tattered_cloak", name:"Tattered Cloak", type:"armor", def:+1,
+          flavor:"Smells like old rain and older secrets." },
+        memory_charm:{ id:"memory_charm", name:"Memory Charm", type:"trinket", insight:+1,
+          flavor:"It hums when you almost remember." },
+        forest_coin:{ id:"forest_coin", name:"Forest Coin", type:"misc",
+          flavor:"A coin minted by something that isn't human." }
+      }
+    };
+
+    RPG.Merchants = {
+      db:{
+        forest_vendor:{
+          id:"forest_vendor",
+          name:"Wandering Merchant",
+          items:[
+            { id:"tattered_cloak", price:8 },
+            { id:"memory_charm", price:12 },
+            { id:"forest_coin", price:3 }
+          ]
+        }
+      }
+    };
+
+    RPG.Quests = {
+      db:{
+        forest_memory:{
+          id:"forest_memory",
+          name:"Echoes in the Forest",
+          description:"Recover a fragment of your memory hidden in the Whispering Path.",
+          startNode:"start",
+          completeNode:"altar",
+          reward:{ insight:1, gold:5 }
+        }
+      }
+    };
+
+    const MapRack = {
+      zones:{
+        forest:{
+          name:"Whispering Forest",
+          grid:[
+            ["start","path","clearing"],
+            ["brook","roots","altar"]
+          ]
+        }
+      },
+      currentZone:"forest",
+      render(){
+        const zone = MapRack.zones[MapRack.currentZone];
+        const el = document.querySelector("#map");
+        const playerNode = RPG.Core.getState().nodeId;
+        let html = `<div class="map-grid">`;
+        for (let row of zone.grid){
+          html += `<div class="map-row">`;
+          for (let cell of row){
+            const node = RPG.Core.getNode(cell);
+            const isPlayer = (cell === playerNode);
+            const merchantIcon = node.merchant ? "🛒" : "";
+            const itemIcon = node.itemsOnGround?.length ? "📦" : "";
+            const pvpIcon = node.pvpAllowed ? "⚔️" : "";
+            const questIcon = node.questTrigger ? "❗" : "";
+            html += `<div class="map-cell ${isPlayer?"here":""}">
+                       ${merchantIcon}${itemIcon}${pvpIcon}${questIcon}
+                       <div>${node ? node.title : "?"}</div>
+                     </div>`;
+          }
+          html += `</div>`;
+        }
+        html += `</div>`;
+        el.innerHTML = html;
+      }
+    };
+
+    (function(Events,Core){
+      function updateVitals(){
+        const st = Core.getState().stats;
+        const list = document.querySelector("#vitals-list");
+        list.innerHTML = `
+          <li>HP: <span class="value">${st.hp}</span></li>
+          <li>ATK: <span class="value">${st.atk}</span></li>
+          <li>DEF: <span class="value">${st.def}</span></li>
+          <li>Insight: <span class="value">${st.insight}</span></li>
+          <li>Gold: <span class="value">${Core.getState().gold}</span></li>
+        `;
+      }
+      Events.on("stats:update", updateVitals);
+      Events.on("node:enter", updateVitals);
+    })(RPG.Events, RPG.Core);
+
+    (function(Racks,Core,Events,DOM){
+      const MOVE = { n:"n", north:"n", s:"s", south:"s", e:"e", east:"e", w:"w", west:"w" };
+
+      function handle(raw){
+        const cmd = raw.trim().toLowerCase();
+        if (!cmd) return;
+        if (MOVE[cmd]) return Core.move(MOVE[cmd]);
+        Events.emit("trigger:word", cmd);
+      }
+
+      const input = DOM.q("#console-input");
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          handle(input.value);
+          input.value = "";
+        }
+      });
+
+      window.addEventListener("keydown", e => {
+        const k = e.key.toLowerCase();
+        if (k === "w" || k === "arrowup") Core.move("n");
+        if (k === "s" || k === "arrowdown") Core.move("s");
+        if (k === "a" || k === "arrowleft") Core.move("w");
+        if (k === "d" || k === "arrowright") Core.move("e");
+      });
+
+      Racks.Input = { handle };
+    })(RPG.Racks, RPG.Core, RPG.Events, RPG.DOM);
+
+    RPG.Events.on("trigger:word", cmd => {
+      if (cmd === "look") {
+        const node = RPG.Core.getCurrentNode();
+        RPG.Events.emit("log", node.text.join(" "));
+      }
+      if (cmd === "where") {
+        const node = RPG.Core.getCurrentNode();
+        RPG.Events.emit("log", `You are at: ${node.title} (${node.zone})`);
+      }
+      if (cmd === "help") {
+        RPG.Events.emit("log",
+          "Commands: n/s/e/w, look, where, help");
+      }
+    });
+
+    RPG.boot = () => {
+      RPG.Events.emit("log","Booting Dreamless Kingdom (Cinematic Shell)...");
+      RPG.Events.emit("node:enter", RPG.Core.getCurrentNode());
+      RPG.Events.emit("log","Type 'help' for commands.");
+    };
+
+    window.addEventListener("DOMContentLoaded", RPG.boot);
+  </script>
+</body>
+</html>
