@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dreamless Kingdom | Interface</title>
+    <style>
+        :root { --bg: #05030a; --accent: #9b8ad8; --panel: rgba(12, 10, 24, 0.95); }
+        body { margin: 0; background: var(--bg); color: #f5f0ff; font-family: "Georgia", serif; overflow: hidden; height: 100vh; }
+        
+        /* Layout */
+        #app { display: grid; grid-template-columns: 1fr 320px; gap: 1rem; padding: 1rem; height: 100vh; box-sizing: border-box; }
+        .main-pane { display: flex; flex-direction: column; gap: 1rem; }
+        
+        /* Story & Log */
+        #story-feed, #log-feed { background: rgba(8, 6, 16, 0.6); border: 1px solid rgba(155, 138, 216, 0.2); padding: 1rem; border-radius: 8px; flex: 1; }
+        #log-feed { overflow-y: auto; max-height: 200px; }
+        
+        /* Sidebar/Phone UI */
+        #phone-interface { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        #mini-map-preview { padding: 10px; text-align: center; background: rgba(155, 138, 216, 0.2); cursor: pointer; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        #mini-map-preview:hover { background: rgba(155, 138, 216, 0.4); }
+        .tabs { display: flex; border-bottom: 1px solid var(--accent); }
+        .tabs button { flex: 1; background: transparent; border: none; color: #fff; padding: 10px; cursor: pointer; }
+        .tabs button:hover { background: rgba(255,255,255,0.1); }
+        .tab-content { padding: 1rem; flex: 1; overflow-y: auto; }
+        
+        /* Draggable Map Widget */
+        #map-widget { position: absolute; top: 50px; right: 350px; width: 300px; height: 300px; background: radial-gradient(circle, #141b3a, #050814); border: 2px solid var(--accent); display: none; cursor: grab; z-index: 100; padding: 10px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        #map-canvas { position: relative; width: 100%; height: 250px; margin-top: 10px; }
+        #map-paths { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .map-node { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); transition: all 0.5s ease; }
+
+        /* Console */
+        #console-panel { display: flex; gap: 0.5rem; background: #1a152e; padding: 0.5rem; border-radius: 4px; font-family: "Courier New", monospace; }
+        #console-input { background: transparent; border: none; color: #fff; flex: 1; outline: none; font-family: inherit;}
+        
+        /* New Vitals Styling */
+        .vitals-bar-wrapper { width: 100%; height: 16px; background: rgba(0,0,0,0.8); border: 1px solid rgba(120,140,255,0.3); position: relative; margin-bottom: 12px; border-radius: 4px; overflow: hidden; }
+        .vitals-fill { height: 100%; position: absolute; left: 0; top: 0; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .vitals-fill.hp { background: linear-gradient(90deg, #4a1525, #b8334d); box-shadow: 0 0 8px rgba(184, 51, 77, 0.6); }
+        .vitals-fill.insight { background: linear-gradient(90deg, #1d3056, #5c8ce6); box-shadow: 0 0 8px rgba(92, 140, 230, 0.6); }
+        .vitals-label { position: absolute; width: 100%; text-align: center; font-size: 0.65rem; line-height: 16px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; z-index: 2; text-shadow: 1px 1px 2px #000; }
+        .stats-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(220,230,255,0.2); }
+        #inventory-list { margin-top: 15px; font-size: 0.8rem; color: #a0a8d0; line-height: 1.5; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px;}
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="main-pane">
+        <div id="story-feed">
+            <h2 id="story-title">Initiating...</h2>
+            <div id="story-body"></div>
+            <div id="story-items" style="color: #ffd9a0; font-style: italic; margin-top: 10px; font-size: 0.9rem;"></div>
+        </div>
+        <div id="log-feed"></div>
+        <div id="console-panel">
+            <span>></span>
+            <input id="console-input" placeholder="Type help, n, s, or 'take [item]'..." autocomplete="off" autofocus>
+        </div>
+    </div>
+
+    <div id="phone-interface">
+        <div id="mini-map-preview" onclick="toggleMapWidget()">[Tap to Expand Map]</div>
+        <div class="tabs">
+            <button>Status</button>
+        </div>
+        <div id="tab-vitals" class="tab-content">
+            </div>
+    </div>
+</div>
+
+<div id="map-widget" onmousedown="dragStart(event)">
+    <h3 style="margin:0; font-size: 1rem; text-align: center; letter-spacing: 0.1em; text-transform: uppercase;">Known Realm</h3>
+    <div id="map-canvas">
+        <svg id="map-paths"></svg>
+        <div id="map-nodes"></div>
+    </div>
+</div>
+
+<script>
+    // Database for Items
+    const ItemDB = {
+        rusty_sword: { name: "Rusty Sword" },
+        glowing_orb: { name: "Orb of Insight" }
+    };
+
+    // The Core Engine State
+    const Core = {
+        state: { 
+            node: 'start', 
+            visited: ['start'], // Tracks Fog of War
+            hp: 12, maxHp: 20, 
+            insight: 2, maxInsight: 5,
+            atk: 3, def: 1, gold: 0,
+            inventory: [] 
+        },
+        nodes: {
+            start: { 
+                title: "Edge of Memory", 
+                text: "Thick mist surrounds you. A faint path leads north.", 
+                exits: { n: 'path' }, 
+                x: 50, y: 80, // Map coordinates (%)
+                itemsOnGround: ['rusty_sword'] 
+            },
+            path: { 
+                title: "Whispering Path", 
+                text: "The trees here seem to lean inward, whispering forgotten secrets. You can go north or south.", 
+                exits: { s: 'start', n: 'clearing' }, 
+                x: 50, y: 50 
+            },
+            clearing: {
+                title: "Moonlit Clearing",
+                text: "The mist breaks, revealing a serene clearing bathed in pale light.",
+                exits: { s: 'path' },
+                x: 50, y: 20
+            }
+        }
+    };
+
+    const UI = {
+        log: (msg) => {
+            const l = document.getElementById('log-feed');
+            l.innerHTML += `<div style="font-size:0.85rem; margin-bottom:6px; color: #c0ffc0;">> ${msg}</div>`;
+            l.scrollTop = l.scrollHeight;
+        },
+        
+        update: () => {
+            const n = Core.nodes[Core.state.node];
+            document.getElementById('story-title').innerText = n.title;
+            document.getElementById('story-body').innerText = n.text;
+            
+            // Show items on ground
+            const itemsDiv = document.getElementById('story-items');
+            if (n.itemsOnGround && n.itemsOnGround.length > 0) {
+                const names = n.itemsOnGround.map(id => ItemDB[id].name).join(", ");
+                itemsDiv.innerText = `You see: ${names}`;
+            } else {
+                itemsDiv.innerText = "";
+            }
+
+            UI.updateVitals();
+            UI.updateMap();
+        },
+
+        updateVitals: () => {
+            const st = Core.state;
+            const hpPercent = Math.min(100, (st.hp / st.maxHp) * 100);
+            const insightPercent = Math.min(100, (st.insight / st.maxInsight) * 100);
+            
+            let invHTML = st.inventory.length === 0 
+                ? "<em>Your satchel is empty.</em>" 
+                : "<strong>Satchel:</strong><br>" + st.inventory.map(id => ItemDB[id].name).join("<br>");
+
+            const html = `
+                <div class="vitals-bar-wrapper">
+                    <div class="vitals-fill hp" style="width: ${hpPercent}%"></div>
+                    <span class="vitals-label">Vitality (${st.hp}/${st.maxHp})</span>
+                </div>
+                <div class="vitals-bar-wrapper">
+                    <div class="vitals-fill insight" style="width: ${insightPercent}%"></div>
+                    <span class="vitals-label">Insight (${st.insight}/${st.maxInsight})</span>
+                </div>
+                <div class="stats-row">
+                    <span>⚔ ATK: ${st.atk}</span>
+                    <span>🛡 DEF: ${st.def}</span>
+                    <span>🪙 ${st.gold}</span>
+                </div>
+                <div id="inventory-list">${invHTML}</div>
+            `;
+            document.getElementById('tab-vitals').innerHTML = html;
+        },
+
+        updateMap: () => {
+            const svg = document.getElementById('map-paths');
+            const nodesContainer = document.getElementById('map-nodes');
+            svg.innerHTML = "";
+            nodesContainer.innerHTML = "";
+
+            // 1. Draw SVG lines only between visited nodes
+            for (let id of Core.state.visited) {
+                const node = Core.nodes[id];
+                for (let dir in node.exits) {
+                    const targetId = node.exits[dir];
+                    if (Core.state.visited.includes(targetId)) {
+                        const targetNode = Core.nodes[targetId];
+                        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+                        line.setAttribute('x1', node.x + '%');
+                        line.setAttribute('y1', node.y + '%');
+                        line.setAttribute('x2', targetNode.x + '%');
+                        line.setAttribute('y2', targetNode.y + '%');
+                        line.setAttribute('stroke', 'rgba(120,140,255,0.4)');
+                        line.setAttribute('stroke-width', '2');
+                        svg.appendChild(line);
+                    }
+                }
+            }
+
+            // 2. Draw Nodes (Applying Fog of War logic)
+            for (let id in Core.nodes) {
+                const node = Core.nodes[id];
+                const isVisited = Core.state.visited.includes(id);
+                const isCurrent = id === Core.state.node;
+                
+                // Check if unvisited but adjacent to a visited node
+                let isAdjacent = false;
+                if (!isVisited) {
+                    for (let vId of Core.state.visited) {
+                        if (Object.values(Core.nodes[vId].exits).includes(id)) isAdjacent = true;
+                    }
+                }
+
+                // Hide completely if not visited and not adjacent
+                if (!isVisited && !isAdjacent) continue;
+
+                const dot = document.createElement('div');
+                dot.className = 'map-node';
+                dot.style.left = node.x + '%';
+                dot.style.top = node.y + '%';
+
+                if (isCurrent) {
+                    dot.style.background = "#b4fff0";
+                    dot.style.boxShadow = "0 0 12px #b4fff0";
+                    dot.style.transform = "translate(-50%, -50%) scale(1.3)";
+                    dot.style.zIndex = 10;
+                } else if (isVisited) {
+                    dot.style.background = "rgba(220,230,255,0.8)";
+                } else if (isAdjacent) {
+                    // Ghost node hinting at unexplored area
+                    dot.style.background = "rgba(80,90,120,0.5)";
+                    dot.style.border = "1px dashed rgba(120,140,255,0.5)";
+                }
+                
+                nodesContainer.appendChild(dot);
+            }
+        }
+    };
+
+    // Input Parser
+    document.getElementById('console-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const rawCmd = e.target.value.toLowerCase().trim();
+            const currentNode = Core.nodes[Core.state.node];
+            e.target.value = '';
+
+            if (!rawCmd) return;
+
+            // Command: Help
+            if (rawCmd === 'help') {
+                UI.log("Commands: n, s, e, w | take [item]");
+                return;
+            }
+
+            // Command: Take
+            if (rawCmd.startsWith('take ')) {
+                const itemName = rawCmd.replace('take ', '').replace(' ', '_'); // "rusty sword" -> "rusty_sword"
+                if (currentNode.itemsOnGround && currentNode.itemsOnGround.includes(itemName)) {
+                    Core.state.inventory.push(itemName);
+                    currentNode.itemsOnGround = currentNode.itemsOnGround.filter(i => i !== itemName);
+                    UI.log(`You picked up the ${ItemDB[itemName].name}.`);
+                    UI.update(); // Refresh UI to show updated inventory & removed floor item
+                } else {
+                    UI.log("There is nothing like that here.");
+                }
+                return;
+            }
+
+            // Command: Movement
+            if (currentNode.exits[rawCmd]) {
+                const nextNodeId = currentNode.exits[rawCmd];
+                Core.state.node = nextNodeId;
+                
+                // Fog of War Discovery tracking
+                if (!Core.state.visited.includes(nextNodeId)) {
+                    Core.state.visited.push(nextNodeId);
+                    UI.log(`Discovered a new location: ${Core.nodes[nextNodeId].title}`);
+                } else {
+                    UI.log(`Moving to ${Core.nodes[nextNodeId].title}...`);
+                }
+                
+                UI.update();
+                return;
+            }
+
+            UI.log("I don't understand that command.");
+        }
+    });
+
+    // Map Widget Dragging Logic
+    function toggleMapWidget() {
+        const w = document.getElementById('map-widget');
+        w.style.display = (w.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function dragStart(e) {
+        const widget = e.currentTarget;
+        let startX = e.clientX;
+        let startY = e.clientY;
+        let startLeft = widget.offsetLeft;
+        let startTop = widget.offsetTop;
+
+        document.onmousemove = (moveEvent) => {
+            widget.style.left = startLeft + (moveEvent.clientX - startX) + 'px';
+            widget.style.top = startTop + (moveEvent.clientY - startY) + 'px';
+        };
+        document.onmouseup = () => document.onmousemove = null;
+    }
+
+    // Boot up
+    UI.update();
+</script>
+</body>
+</html>
