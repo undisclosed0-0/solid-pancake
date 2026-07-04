@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dreamless Kingdom | Interface</title>
+    <style>
+        :root { --bg: #05030a; --accent: #9b8ad8; --panel: rgba(12, 10, 24, 0.95); 
+                --hp-c: #b8334d; --stam-c: #5ce6a0; --ins-c: #5c8ce6; }
+        body { margin: 0; background: var(--bg); color: #f5f0ff; font-family: "Georgia", serif; overflow: hidden; height: 100vh; }
+        
+        #app { display: grid; grid-template-columns: 1fr 320px; gap: 1rem; padding: 1rem; height: 100vh; box-sizing: border-box; }
+        .main-pane { display: flex; flex-direction: column; gap: 1rem; }
+        
+        #story-feed, #log-feed { background: rgba(8, 6, 16, 0.6); border: 1px solid rgba(155, 138, 216, 0.2); padding: 1rem; border-radius: 8px; flex: 1; }
+        #log-feed { overflow-y: auto; max-height: 200px; }
+        
+        /* Sidebar/Phone UI */
+        #phone-interface { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        #mini-map-preview { padding: 10px; text-align: center; background: rgba(155, 138, 216, 0.2); cursor: pointer; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        
+        /* Compass */
+        #compass-ui { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 10px; background: rgba(0,0,0,0.3); font-size: 0.7rem; }
+        .dir-btn { text-align: center; color: #333; transition: color 0.2s; }
+        .dir-btn.active { color: var(--accent); text-shadow: 0 0 5px var(--accent); }
+        .center-btn { text-align: center; color: #555; }
+
+        /* Vitals */
+        .vitals-box { padding: 1rem; border-bottom: 1px solid var(--accent); }
+        .bar-wrap { margin-bottom: 10px; font-size: 0.75rem; }
+        .bar-bg { height: 8px; background: #000; border-radius: 4px; overflow: hidden; margin-top: 3px; }
+        .bar-fill { height: 100%; transition: width 0.5s ease; }
+
+        /* Draggable Map Widget */
+        #map-widget { position: absolute; top: 50px; right: 350px; width: 300px; height: 300px; background: #000; border: 2px solid var(--accent); display: none; cursor: grab; z-index: 100; padding: 10px; }
+        #map-canvas { position: relative; width: 100%; height: 250px; }
+        #map-paths { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .map-node { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); transition: all 0.5s ease; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="main-pane">
+        <div id="story-feed">
+            <h2 id="story-title">Initiating...</h2>
+            <div id="story-body"></div>
+        </div>
+        <div id="log-feed"></div>
+        <div id="console-panel" style="padding: 10px; background: #1a152e;">
+            <input id="console-input" style="background:transparent; border:none; color:#fff; width:100%;" placeholder="Command..." autofocus>
+        </div>
+    </div>
+
+    <div id="phone-interface">
+        <div id="mini-map-preview" onclick="toggleMapWidget()">[Atlas]</div>
+        <div id="compass-ui"></div>
+        <div id="vitals-container" class="vitals-box"></div>
+        <div id="tab-items" class="tab-content" style="padding: 10px; font-size: 0.8rem;"></div>
+    </div>
+</div>
+
+<div id="map-widget" onmousedown="dragStart(event)">
+    <div id="map-canvas">
+        <svg id="map-paths"></svg>
+        <div id="map-nodes"></div>
+    </div>
+</div>
+
+<script>
+    const Core = {
+        state: { 
+            node: 'start', visited: ['start'], 
+            hp: 12, maxHp: 20, 
+            stam: 80, maxStam: 100,
+            insight: 2, maxInsight: 10,
+            inventory: [] 
+        },
+        nodes: {
+            start: { title: "Edge of Memory", exits: { n: 'path', se: 'secret' }, x: 50, y: 80 },
+            path: { title: "Whispering Path", exits: { s: 'start', n: 'clearing' }, x: 50, y: 50 },
+            clearing: { title: "Moonlit Clearing", exits: { s: 'path' }, x: 50, y: 20 },
+            secret: { title: "Hidden Grotto", exits: { nw: 'start' }, x: 70, y: 70 }
+        }
+    };
+
+    const UI = {
+        update: () => {
+            const n = Core.nodes[Core.state.node];
+            document.getElementById('story-title').innerText = n.title;
+            UI.updateVitals();
+            UI.updateCompass();
+            UI.updateMap();
+        },
+
+        updateCompass: () => {
+            const n = Core.nodes[Core.state.node];
+            const compass = document.getElementById('compass-ui');
+            const dirs = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se'];
+            compass.innerHTML = dirs.map(d => {
+                if(d === 'c') return `<div class="center-btn">●</div>`;
+                return `<div class="dir-btn ${n.exits[d] ? 'active' : ''}">${d.toUpperCase()}</div>`;
+            }).join('');
+        },
+
+        updateVitals: () => {
+            const st = Core.state;
+            document.getElementById('vitals-container').innerHTML = `
+                <div class="bar-wrap">HP <div class="bar-bg"><div class="bar-fill" style="width:${(st.hp/st.maxHp)*100}%; background:var(--hp-c)"></div></div></div>
+                <div class="bar-wrap">Stamina <div class="bar-bg"><div class="bar-fill" style="width:${(st.stam/st.maxStam)*100}%; background:var(--stam-c)"></div></div></div>
+                <div class="bar-wrap">Insight <div class="bar-bg"><div class="bar-fill" style="width:${(st.insight/st.maxInsight)*100}%; background:var(--ins-c)"></div></div></div>
+            `;
+        },
+
+        updateMap: () => {
+            const svg = document.getElementById('map-paths');
+            const nodesContainer = document.getElementById('map-nodes');
+            svg.innerHTML = ""; nodesContainer.innerHTML = "";
+
+            Core.state.visited.forEach(id => {
+                const node = Core.nodes[id];
+                Object.keys(node.exits).forEach(dir => {
+                    const targetId = node.exits[dir];
+                    if(Core.state.visited.includes(targetId)) {
+                        const target = Core.nodes[targetId];
+                        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+                        line.setAttribute('x1', node.x + '%'); line.setAttribute('y1', node.y + '%');
+                        line.setAttribute('x2', target.x + '%'); line.setAttribute('y2', target.y + '%');
+                        line.setAttribute('stroke', 'rgba(155, 138, 216, 0.3)');
+                        line.setAttribute('stroke-width', '2');
+                        svg.appendChild(line);
+                    }
+                });
+                const dot = document.createElement('div');
+                dot.className = 'map-node';
+                dot.style.left = node.x + '%'; dot.style.top = node.y + '%';
+                dot.style.background = (id === Core.state.node) ? '#fff' : 'var(--accent)';
+                nodesContainer.appendChild(dot);
+            });
+        }
+    };
+
+    document.getElementById('console-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const cmd = e.target.value.toLowerCase().trim();
+            if (Core.nodes[Core.state.node].exits[cmd]) {
+                Core.state.node = Core.nodes[Core.state.node].exits[cmd];
+                if(!Core.state.visited.includes(Core.state.node)) Core.state.visited.push(Core.state.node);
+                UI.update();
+            }
+            e.target.value = '';
+        }
+    });
+
+    function toggleMapWidget() {
+        const w = document.getElementById('map-widget');
+        w.style.display = (w.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function dragStart(e) {
+        const widget = e.currentTarget;
+        let startX = e.clientX; let startY = e.clientY;
+        let startLeft = widget.offsetLeft; let startTop = widget.offsetTop;
+        document.onmousemove = (me) => {
+            widget.style.left = startLeft + (me.clientX - startX) + 'px';
+            widget.style.top = startTop + (me.clientY - startY) + 'px';
+        };
+        document.onmouseup = () => document.onmousemove = null;
+    }
+
+    UI.update();
+</script>
+</body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dreamless Kingdom | Interface</title>
+    <style>
+        /* =========================================
+           CORE THEME & LAYOUT
+           ========================================= */
+        :root {
+            --bg-color: #08060f;
+            --panel-bg: #120e1f;
+            --border-color: rgba(155, 138, 216, 0.2);
+            --text-main: #e2dcf2;
+            --text-muted: #8a7fa6;
+            --health-grad: linear-gradient(90deg, #ff6b6b, #feca57);
+            --stamina-grad: linear-gradient(90deg, #48dbfb, #1dd1a1);
+            --font-story: "Georgia", serif;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0; background: var(--bg-color); color: var(--text-main);
+            font-family: var(--font-story); height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            transition: filter 2s ease; /* For cutscene effects */
+        }
+
+        #app-container {
+            display: grid; grid-template-columns: 1fr 380px; gap: 1rem;
+            padding: 1rem; height: calc(100vh - 2rem); box-sizing: border-box;
+        }
+
+        /* =========================================
+           MAIN TERMINAL (LEFT)
+           ========================================= */
+        #terminal { display: flex; flex-direction: column; gap: 1rem; }
+        
+        #story-panel {
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1.5rem; flex: 1; overflow-y: auto;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        #node-title { font-size: 1.2rem; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0; color: #fff; }
+        #node-desc { line-height: 1.6; font-size: 1.05rem; }
+
+        /* Compass UI */
+        #compass-panel {
+            display: flex; justify-content: space-between; background: var(--panel-bg);
+            border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;
+            font-family: var(--font-ui); font-size: 0.85rem;
+        }
+        .compass-grid {
+            display: grid; grid-template-areas: ". n ." "w c e" ". s ."; gap: 5px;
+            text-align: center; font-weight: bold; color: var(--text-muted);
+        }
+        .dir-n { grid-area: n; } .dir-s { grid-area: s; } .dir-w { grid-area: w; } .dir-e { grid-area: e; }
+        .dir-active { color: #fff; text-shadow: 0 0 5px #fff; }
+
+        /* Action Log */
+        #action-log {
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 1rem; height: 150px; overflow-y: auto;
+            font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-muted);
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        #input-area { display: flex; align-items: center; gap: 10px; font-family: monospace; }
+        #input-area input {
+            flex: 1; background: transparent; border: 1px solid var(--border-color);
+            color: #fff; padding: 10px; border-radius: 4px; font-family: inherit; outline: none;
+        }
+
+        /* =========================================
+           SIDEBAR UI (RIGHT)
+           ========================================= */
+        #sidebar {
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
+            font-family: var(--font-ui);
+        }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); background: #0c0914; }
+        .tab-btn {
+            flex: 1; background: transparent; border: none; color: var(--text-muted);
+            padding: 12px 0; cursor: pointer; font-size: 0.85rem; font-weight: bold;
+        }
+        .tab-btn.active { color: #fff; border-bottom: 2px solid #fff; }
+        .tab-content { display: none; padding: 1rem; flex: 1; overflow-y: auto; }
+        .tab-content.active { display: block; }
+
+        /* Minimap Widget */
+        #minimap-widget {
+            height: 250px; background: #05030a; border-radius: 6px; margin-bottom: 1rem;
+            position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+        }
+        .map-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+        
+        /* Progress Bars */
+        .bar-container { margin-bottom: 1rem; }
+        .bar-header { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; }
+        .bar-track { height: 12px; background: #222; border-radius: 6px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.3s ease; }
+        .bar-fill.health { background: var(--health-grad); }
+        .bar-fill.stamina { background: var(--stamina-grad); }
+
+        /* Data Lists (Stats/Equip) */
+        .data-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+        .data-label { color: var(--text-muted); font-weight: bold; }
+        .data-val.empty { color: #555; font-style: italic; }
+
+        /* Interactive Items */
+        .item-row {
+            display: flex; justify-content: space-between; padding: 8px; margin-bottom: 4px;
+            background: rgba(255,255,255,0.03); border-radius: 4px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .item-row:hover { background: rgba(255,255,255,0.1); }
+        .item-qty { color: var(--text-muted); font-size: 0.8rem; }
+
+        /* =========================================
+           FULLSCREEN LARGE MAP
+           ========================================= */
+        #large-map-overlay {
+            position: fixed; inset: 0; background: rgba(5, 3, 10, 0.95); z-index: 1000;
+            display: none; flex-direction: column; backdrop-filter: blur(5px);
+        }
+        #large-map-header { padding: 1rem; display: flex; justify-content: space-between; align-items: center; font-family: var(--font-ui); }
+        #large-map-header h2 { margin: 0; text-transform: uppercase; letter-spacing: 0.1em; }
+        #close-map-btn { background: #fff; color: #000; border: none; padding: 8px 16px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        
+        #large-map-viewport { flex: 1; position: relative; overflow: hidden; cursor: grab; }
+        #large-map-viewport:active { cursor: grabbing; }
+        #large-map-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 2000px; height: 2000px; transform-origin: center center; }
+
+        /* Map Nodes & SVG */
+        svg.map-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        line.path { stroke: rgba(120, 100, 160, 0.4); stroke-width: 2; transition: stroke 0.3s; }
+        
+        .node-dot {
+            position: absolute; width: 14px; height: 14px; background: #e2dcf2;
+            border-radius: 50%; transform: translate(-50%, -50%); z-index: 10;
+        }
+        /* The Beacon Effect */
+        .node-dot.current { background: #fff; box-shadow: 0 0 10px #fff; }
+        .node-dot.current::after {
+            content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border: 1px solid #fff; border-radius: 50%; animation: pulse 2s infinite; pointer-events: none;
+        }
+        
+        .node-label {
+            position: absolute; color: #fff; font-family: var(--font-story); font-size: 0.8rem;
+            white-space: nowrap; transform: translate(-50%, 15px); text-shadow: 1px 1px 2px #000; z-index: 11;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .fx-shake { animation: shake 0.3s ease-in-out; }
+        .fx-red { filter: sepia(1) hue-rotate(-50deg) saturate(3); }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <main id="terminal">
+        <div id="story-panel">
+            <h2 id="node-title">Initializing...</h2>
+            <div id="node-desc"></div>
+            <div id="node-entities" style="margin-top:1rem; color: #feca57; font-style: italic;"></div>
+        </div>
+
+        <div id="compass-panel">
+            <div>
+                <div><strong>DIRECTION</strong></div>
+                <div style="color: var(--text-muted); margin-top: 5px;" id="compass-text">You are standing still.</div>
+            </div>
+            <div class="compass-grid">
+                <span class="dir-n" id="dir-n">N</span>
+                <span class="dir-w" id="dir-w">W</span>
+                <span class="dir-e" id="dir-e">E</span>
+                <span class="dir-s" id="dir-s">S</span>
+            </div>
+        </div>
+
+        <div id="action-log"></div>
+
+        <div id="input-area">
+            <span>&gt;</span>
+            <input type="text" id="cmd-input" placeholder="Type direction, 'take [item]', 'equip [item]'..." autocomplete="off" autofocus>
+        </div>
+    </main>
+
+    <aside id="sidebar">
+        <div style="padding: 1rem 1rem 0; font-weight: bold; font-size: 1.1rem;">Map & Character</div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="Engine.UI.switchTab('overview')">Overview</button>
+            <button class="tab-btn" onclick="Engine.UI.switchTab('items')">Items</button>
+            <button class="tab-btn" onclick="Engine.UI.switchTab('equipment')">Equipment</button>
+            <button class="tab-btn" onclick="Engine.UI.switchTab('stats')">Stats</button>
+        </div>
+
+        <div id="tab-overview" class="tab-content active">
+            <div id="minimap-widget" onclick="Engine.Map.openLargeMap()" title="Click to expand">
+                <svg class="map-layer map-lines" id="minimap-lines"></svg>
+                <div class="map-layer" id="minimap-nodes"></div>
+            </div>
+
+            <div class="bar-container">
+                <div class="bar-header"><span>Health</span><span id="txt-hp">10</span></div>
+                <div class="bar-track"><div class="bar-fill health" id="bar-hp" style="width: 100%"></div></div>
+            </div>
+            <div class="bar-container">
+                <div class="bar-header"><span>Stamina</span><span id="txt-stam">100</span></div>
+                <div class="bar-track"><div class="bar-fill stamina" id="bar-stam" style="width: 100%"></div></div>
+            </div>
+            
+            <div class="data-row" style="margin-top: 1rem;">
+                <span class="data-label">Position</span>
+                <span id="txt-position" style="font-weight: bold;">Standing</span>
+            </div>
+        </div>
+
+        <div id="tab-items" class="tab-content">
+            <div id="inventory-list"></div>
+        </div>
+
+        <div id="tab-equipment" class="tab-content">
+            <div id="equipment-list"></div>
+        </div>
+
+        <div id="tab-stats" class="tab-content">
+            <div style="color: #fff; font-weight: bold; margin-bottom: 8px;">Attributes</div>
+            <div class="data-row"><span class="data-label">Strength</span><span id="stat-str">25</span></div>
+            <div class="data-row"><span class="data-label">Intelligence</span><span id="stat-int">7</span></div>
+            <div class="data-row"><span class="data-label">Constitution</span><span id="stat-con">19</span></div>
+            <div class="data-row"><span class="data-label">Dexterity</span><span id="stat-dex">7</span></div>
+            <div style="color: #fff; font-weight: bold; margin: 16px 0 8px;">Combat</div>
+            <div class="data-row"><span class="data-label">Attack Power</span><span id="stat-atk">25</span></div>
+            <div class="data-row"><span class="data-label">Armor</span><span id="stat-def">0%</span></div>
+            <div class="data-row"><span class="data-label">Gold</span><span id="stat-gold">0</span></div>
+        </div>
+    </aside>
+</div>
+
+<div id="large-map-overlay">
+    <div id="large-map-header">
+        <h2>Known Realm</h2>
+        <button id="close-map-btn" onclick="Engine.Map.closeLargeMap()">Close Map</button>
+    </div>
+    <div id="large-map-viewport">
+        <div id="large-map-canvas">
+            <svg class="map-layer map-lines" id="large-map-lines"></svg>
+            <div class="map-layer" id="large-map-nodes"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * DREAMLESS KINGDOM ENGINE
+ * Handles State, World Data, Command Parsing, and UI Rendering.
+ */
+const Engine = {
+    // --- STATE ---
+    State: {
+        currentNode: 'retreat',
+        visited: ['retreat'],
+        hp: 10, maxHp: 10,
+        stam: 100, maxStam: 100,
+        stats: { str: 25, int: 7, con: 19, dex: 7, gold: 0 },
+        inventory: [
+            { id: 'minor_potion', qty: 3 }
+        ],
+        equipment: {
+            Weapon: null, Offhand: null, Head: null, Body: null,
+            Arms: null, Hands: null, Waist: null
+        }
+    },
+
+    // --- DATABASES ---
+    DB: {
+        Items: {
+            minor_potion: { name: "Minor Potion", type: "consumable", desc: "Restores 5 HP.", effect: (state) => { state.hp = Math.min(state.maxHp, state.hp + 5); } },
+            bone_sword: { name: "Bone Sword", type: "equipment", slot: "Weapon", statAttr: "str", statVal: 5 },
+            moss_cloak: { name: "Moss Cloak", type: "equipment", slot: "Body", statAttr: "con", statVal: 3 }
+        },
+        // Coordinates (x, y) map to a 2000x2000 canvas. Center is ~1000, 1000.
+        Nodes: {
+            retreat: { title: "Retreat", desc: "A quiet place to rest before the ascent.", x: 1000, y: 1500, exits: { n: 'forest_edge' } },
+            forest_edge: { title: "The Forest at the Edge", desc: "The tree line begins here, dark and foreboding.", x: 1000, y: 1300, exits: { s: 'retreat', n: 'whispering_path' } },
+            whispering_path: { title: "Whispering Path", desc: "Shadows twist around you.", x: 1000, y: 1100, exits: { s: 'forest_edge', n: 'moss_wall', e: 'clearing_echoes' }, items: ['bone_sword'] },
+            moss_wall: { title: "The Moss-Covered Wall", desc: "A sheer vertical climb.", x: 1000, y: 900, exits: { s: 'whispering_path', n: 'lower_shaft' } },
+            lower_shaft: { title: "Lower Shaft", desc: "Cold wind howls.", x: 1000, y: 750, exits: { s: 'moss_wall', n: 'mid_shaft' } },
+            mid_shaft: { title: "Mid-Shaft Ledge", desc: "A brief respite on the climb.", x: 1000, y: 600, exits: { s: 'lower_shaft', n: 'top_shaft', e: 'tight_crawlspace' } },
+            tight_crawlspace: { title: "Tight Crawlspace", desc: "Barely wide enough for your shoulders.", x: 1150, y: 600, exits: { w: 'mid_shaft' }, items: ['moss_cloak'] },
+            top_shaft: { title: "Top of the Shaft", desc: "You emerge into a hollow high in the forest wall.", x: 1000, y: 450, exits: { s: 'mid_shaft', n: 'canopy_bridge' } },
+            canopy_bridge: { title: "Bridge in the Canopy", desc: "A rope bridge stretches north into the mist.", x: 1000, y: 300, exits: { s: 'top_shaft', n: 'nest_echoes' } },
+            nest_echoes: { 
+                title: "Nest of Echoes", 
+                desc: "A platform woven from branches and bone. A presence stirs ~ ancient, watching, waiting.", 
+                x: 1000, y: 150, exits: { s: 'canopy_bridge' },
+                cutscene: "boss_reveal" // Triggers visual FX
+            },
+            // Eastern Path from Whispering Path
+            clearing_echoes: { title: "Clearing of Echoes", desc: "Quiet. Too quiet.", x: 1250, y: 1100, exits: { w: 'whispering_path', n: 'mark_edge', s: 'fallen_hollow' } },
+            mark_edge: { title: "Mark at the Edge", desc: "Runes are carved into a stump.", x: 1250, y: 950, exits: { s: 'clearing_echoes' } },
+            fallen_hollow: { title: "The Fallen Hollow", desc: "A collapsed cavern.", x: 1250, y: 1250, exits: { n: 'clearing_echoes' } }
+        }
+    },
+
+    // --- LOGIC ---
+    Logic: {
+        init() {
+            Engine.UI.updateStory();
+            Engine.UI.updateVitals();
+            Engine.UI.renderInventory();
+            Engine.UI.renderEquipment();
+            Engine.Map.draw();
+            Engine.UI.log("System Online. Type 'help' for commands.");
+            
+            // Input Listener
+            document.getElementById('cmd-input').addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') {
+                    Engine.Logic.parse(e.target.value.trim().toLowerCase());
+                    e.target.value = '';
+                }
+            });
+            Engine.Map.setupDragAndZoom();
+        },
+
+        parse(cmd) {
+            if(!cmd) return;
+            const node = Engine.DB.Nodes[Engine.State.currentNode];
+            Engine.UI.log(`> ${cmd}`, '#fff');
+
+            if(cmd === 'help') {
+                Engine.UI.log("Movement: n, s, e, w. Actions: take [item], look, map.");
+                return;
+            }
+            if(cmd === 'map') {
+                Engine.Map.openLargeMap(); return;
+            }
+
+            // Movement
+            if(['n','s','e','w'].includes(cmd)) {
+                if(node.exits[cmd]) {
+                    Engine.Logic.moveTo(node.exits[cmd], cmd);
+                } else {
+                    Engine.UI.log("You cannot go that way.");
+                }
+                return;
+            }
+
+            // Take Item
+            if(cmd.startsWith('take ')) {
+                const target = cmd.replace('take ', '').replace(' ', '_');
+                if(node.items && node.items.includes(target)) {
+                    // Add to inv
+                    const existing = Engine.State.inventory.find(i => i.id === target);
+                    if(existing) existing.qty++; else Engine.State.inventory.push({id: target, qty: 1});
+                    // Remove from floor
+                    node.items = node.items.filter(i => i !== target);
+                    
+                    Engine.UI.log(`You picked up the ${Engine.DB.Items[target].name}.`);
+                    Engine.UI.updateStory();
+                    Engine.UI.renderInventory();
+                } else {
+                    Engine.UI.log("Nothing like that here.");
+                }
+                return;
+            }
+
+            Engine.UI.log("Unrecognized command.");
+        },
+
+        moveTo(nodeId, dirStr) {
+            Engine.State.currentNode = nodeId;
+            if(!Engine.State.visited.includes(nodeId)) {
+                Engine.State.visited.push(nodeId);
+            }
+            
+            // Stamina drain
+            Engine.State.stam = Math.max(0, Engine.State.stam - 2);
+            
+            // Compass Text translation
+            const dirMap = { n: 'North', s: 'South', e: 'East', w: 'West'};
+            document.getElementById('compass-text').innerText = `You moved ${dirMap[dirStr]}.`;
+
+            Engine.UI.updateStory();
+            Engine.UI.updateVitals();
+            Engine.Map.draw(); // Redraw maps
+            Engine.Logic.checkCutscene(nodeId);
+        },
+
+        checkCutscene(nodeId) {
+            const node = Engine.DB.Nodes[nodeId];
+            if(node.cutscene === "boss_reveal") {
+                Engine.UI.log("A chill runs down your spine...", "#ff6b6b");
+                document.body.classList.add("fx-red");
+                document.getElementById('app-container').classList.add("fx-shake");
+                setTimeout(() => {
+                    document.getElementById('app-container').classList.remove("fx-shake");
+                }, 300);
+            } else {
+                document.body.classList.remove("fx-red");
+            }
+        },
+
+        interactItem(itemId, action) {
+            const itemDef = Engine.DB.Items[itemId];
+            if(itemDef.type === "consumable") {
+                itemDef.effect(Engine.State);
+                Engine.UI.log(`You consumed ${itemDef.name}.`);
+                // Deduct qty
+                const invItem = Engine.State.inventory.find(i => i.id === itemId);
+                invItem.qty--;
+                if(invItem.qty <= 0) Engine.State.inventory = Engine.State.inventory.filter(i => i.id !== itemId);
+            } else if(itemDef.type === "equipment") {
+                Engine.State.equipment[itemDef.slot] = itemId;
+                Engine.UI.log(`Equipped ${itemDef.name} to ${itemDef.slot}.`);
+                // Optional: remove from inventory, or keep it there but mark equipped. We'll just equip it here.
+            }
+            Engine.UI.updateVitals();
+            Engine.UI.renderInventory();
+            Engine.UI.renderEquipment();
+        }
+    },
+
+    // --- UI RENDERING ---
+    UI: {
+        log(msg, color = "var(--text-muted)") {
+            const logPanel = document.getElementById('action-log');
+            const entry = document.createElement('div');
+            entry.style.color = color;
+            entry.innerText = msg;
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        },
+
+        updateStory() {
+            const node = Engine.DB.Nodes[Engine.State.currentNode];
+            document.getElementById('node-title').innerText = node.title;
+            document.getElementById('node-desc').innerText = node.desc;
+            
+            // Floor items
+            const entityPanel = document.getElementById('node-entities');
+            if(node.items && node.items.length > 0) {
+                const names = node.items.map(id => Engine.DB.Items[id].name).join(", ");
+                entityPanel.innerText = `Laying on the ground: ${names}`;
+            } else {
+                entityPanel.innerText = "";
+            }
+
+            // Compass Highlights
+            ['n','s','e','w'].forEach(d => {
+                const el = document.getElementById(`dir-${d}`);
+                if(node.exits[d]) el.classList.add('dir-active');
+                else el.classList.remove('dir-active');
+            });
+        },
+
+        updateVitals() {
+            const st = Engine.State;
+            document.getElementById('txt-hp').innerText = st.hp;
+            document.getElementById('bar-hp').style.width = (st.hp / st.maxHp * 100) + "%";
+            document.getElementById('txt-stam').innerText = st.stam;
+            document.getElementById('bar-stam').style.width = (st.stam / st.maxStam * 100) + "%";
+
+            // Calculate derived stats based on equipment
+            let totalStr = st.stats.str;
+            let totalCon = st.stats.con;
+            Object.values(st.equipment).forEach(itemId => {
+                if(itemId) {
+                    const item = Engine.DB.Items[itemId];
+                    if(item.statAttr === "str") totalStr += item.statVal;
+                    if(item.statAttr === "con") totalCon += item.statVal;
+                }
+            });
+
+            document.getElementById('stat-str').innerText = totalStr;
+            document.getElementById('stat-con').innerText = totalCon;
+            document.getElementById('stat-atk').innerText = totalStr; // simplified formula
+            document.getElementById('stat-gold').innerText = st.stats.gold;
+        },
+
+        switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        },
+
+        renderInventory() {
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = "";
+            if(Engine.State.inventory.length === 0) {
+                list.innerHTML = "<div class='data-val empty'>Satchel is empty.</div>";
+                return;
+            }
+            Engine.State.inventory.forEach(item => {
+                const def = Engine.DB.Items[item.id];
+                const row = document.createElement('div');
+                row.className = "item-row";
+                row.innerHTML = `<span>${def.name} <span class="item-qty">x${item.qty}</span></span> <span style="font-size:0.75rem; color:#888;">[${def.type}]</span>`;
+                row.onclick = () => Engine.Logic.interactItem(item.id, 'use');
+                list.appendChild(row);
+            });
+        },
+
+        renderEquipment() {
+            const list = document.getElementById('equipment-list');
+            list.innerHTML = "";
+            const slots = ["Weapon", "Offhand", "Head", "Body", "Arms", "Hands", "Waist"];
+            slots.forEach(slot => {
+                const itemId = Engine.State.equipment[slot];
+                const itemName = itemId ? Engine.DB.Items[itemId].name : "<empty>";
+                const color = itemId ? "#fff" : "#555";
+                list.innerHTML += `
+                    <div class="data-row">
+                        <span class="data-label">${slot}</span>
+                        <span class="data-val" style="color: ${color}; font-style: ${itemId ? 'normal' : 'italic'};">${itemName}</span>
+                    </div>
+                `;
+            });
+        }
+    },
+
+    // --- MAP ENGINE ---
+    Map: {
+        draw() {
+            // Draws both minimap and large map
+            Engine.Map.renderToCanvas('minimap');
+            Engine.Map.renderToCanvas('large-map');
+        },
+
+        renderToCanvas(prefix) {
+            const svg = document.getElementById(`${prefix}-lines`);
+            const container = document.getElementById(`${prefix}-nodes`);
+            svg.innerHTML = "";
+            container.innerHTML = "";
+
+            const nodesDb = Engine.DB.Nodes;
+            const visited = Engine.State.visited;
+            
+            // Dynamic scaling for minimap to focus on current node
+            let scale = 1;
+            let offsetX = 0, offsetY = 0;
+            const currNode = nodesDb[Engine.State.currentNode];
+
+            if(prefix === 'minimap') {
+                scale = 0.25; // shrink coordinates to fit widget
+                // Center widget on current node
+                offsetX = 150 - (currNode.x * scale); 
+                offsetY = 125 - (currNode.y * scale);
+            }
+
+            // Draw Lines
+            visited.forEach(id => {
+                const node = nodesDb[id];
+                Object.values(node.exits).forEach(targetId => {
+                    if(visited.includes(targetId)) {
+                        const target = nodesDb[targetId];
+                        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+                        line.setAttribute('class', 'path');
+                        
+                        if(prefix === 'minimap') {
+                            line.setAttribute('x1', (node.x * scale) + offsetX);
+                            line.setAttribute('y1', (node.y * scale) + offsetY);
+                            line.setAttribute('x2', (target.x * scale) + offsetX);
+                            line.setAttribute('y2', (target.y * scale) + offsetY);
+                        } else {
+                            line.setAttribute('x1', node.x);
+                            line.setAttribute('y1', node.y);
+                            line.setAttribute('x2', target.x);
+                            line.setAttribute('y2', target.y);
+                        }
+                        svg.appendChild(line);
+                    }
+                });
+            });
+
+            // Draw Nodes
+            visited.forEach(id => {
+                const node = nodesDb[id];
+                const dot = document.createElement('div');
+                dot.className = `node-dot ${id === Engine.State.currentNode ? 'current' : ''}`;
+                
+                if(prefix === 'minimap') {
+                    dot.style.left = ((node.x * scale) + offsetX) + "px";
+                    dot.style.top = ((node.y * scale) + offsetY) + "px";
+                } else {
+                    dot.style.left = node.x + "px";
+                    dot.style.top = node.y + "px";
+                    
+                    // Large map gets titles
+                    const label = document.createElement('div');
+                    label.className = "node-label";
+                    label.innerText = node.title;
+                    label.style.left = node.x + "px";
+                    label.style.top = node.y + "px";
+                    container.appendChild(label);
+                }
+                container.appendChild(dot);
+            });
+        },
+
+        openLargeMap() {
+            document.getElementById('large-map-overlay').style.display = 'flex';
+            Engine.Map.draw(); // Ensure it's up to date
+        },
+        closeLargeMap() {
+            document.getElementById('large-map-overlay').style.display = 'none';
+        },
+
+        // Pan & Zoom functionality for the large map
+        setupDragAndZoom() {
+            const viewport = document.getElementById('large-map-viewport');
+            const canvas = document.getElementById('large-map-canvas');
+            
+            let isDragging = false;
+            let startX, startY;
+            let currentX = 0, currentY = 0; // translation
+            let scale = 1;
+
+            viewport.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - currentX;
+                startY = e.clientY - currentY;
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            window.addEventListener('mousemove', (e) => {
+                if(!isDragging) return;
+                currentX = e.clientX - startX;
+                currentY = e.clientY - startY;
+                updateTransform();
+            });
+
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomIntensity = 0.1;
+                if(e.deltaY < 0) scale *= (1 + zoomIntensity);
+                else scale /= (1 + zoomIntensity);
+                // Clamp scale
+                scale = Math.max(0.3, Math.min(scale, 3));
+                updateTransform();
+            });
+
+            function updateTransform() {
+                canvas.style.transform = `translate(calc(-50% + ${currentX}px), calc(-50% + ${currentY}px)) scale(${scale})`;
+            }
+        }
+    }
+};
+
+// Boot Game
+window.onload = () => Engine.Logic.init();
+</script>
+</body>
+  </html>
+</html>
