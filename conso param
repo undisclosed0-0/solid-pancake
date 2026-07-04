@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dreamless Kingdom</title>
+  <style>
+    body { margin: 0; background: #05030a; color: #f5f0ff; font-family: "Georgia", serif; }
+    #scene { position: fixed; inset: 0; background: radial-gradient(circle, #1a1128, #000); z-index: 0; }
+    #app { position: relative; z-index: 1; max-width: 1000px; margin: 2rem auto; display: grid; grid-template-columns: 1fr 350px; gap: 1rem; padding: 1rem; }
+    
+    /* Layout Sections */
+    .main-col { background: rgba(8, 6, 16, 0.5); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(190,160,255,0.2); }
+    .side-col { display: flex; flex-direction: column; gap: 1rem; }
+    
+    /* Tabbed Interface */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .tab-btn { cursor: pointer; padding: 0.3rem 0.6rem; font-size: 0.8rem; background: #222; border-radius: 4px; }
+    .tab-btn.active { background: #4a3a70; }
+    .tab-content { background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; min-height: 200px; }
+    
+    /* Map Styles */
+    #mini-map { height: 150px; background: #111; cursor: pointer; border: 1px solid #444; }
+    #big-map-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; padding: 2rem; }
+    
+    /* Mockup for bars */
+    .bar-container { height: 10px; background: #333; margin: 0.5rem 0; }
+    .bar-fill { height: 100%; background: #9b8ad8; width: 50%; }
+  </style>
+</head>
+<body>
+  <div id="scene"></div>
+  
+  <div id="app">
+    <div class="main-col">
+      <header id="header"><h1 id="game-title">Dreamless Kingdom</h1></header>
+      <section id="story-feed"><div id="story-body"></div></section>
+      <section id="console-panel">
+        <input id="console-input" type="text" placeholder="Enter command...">
+      </section>
+    </div>
+
+    <div class="side-col">
+      <div id="mini-map" onclick="toggleBigMap()">[Minimap Click to Expand]</div>
+      
+      <div class="tabs">
+        <div class="tab-btn active" onclick="showTab('overview')">Overview</div>
+        <div class="tab-btn" onclick="showTab('items')">Items</div>
+        <div class="tab-btn" onclick="showTab('equip')">Equip</div>
+        <div class="tab-btn" onclick="showTab('stats')">Stats</div>
+      </div>
+      
+      <div id="tab-overview" class="tab-content">
+        <label>Health</label><div class="bar-container"><div class="bar-fill" style="width:80%"></div></div>
+        <label>Stamina</label><div class="bar-container"><div class="bar-fill" style="width:60%"></div></div>
+        <label>Insight</label><div class="bar-container"><div class="bar-fill" style="width:20%"></div></div>
+      </div>
+      <div id="tab-items" class="tab-content" style="display:none;">Inventory items go here.</div>
+      <div id="tab-equip" class="tab-content" style="display:none;">Equipment slots.</div>
+      <div id="tab-stats" class="tab-content" style="display:none;">Player Attributes.</div>
+    </div>
+  </div>
+
+  <div id="big-map-overlay" onclick="toggleBigMap()">
+    <div style="color:white; text-align:center;"><h2>World Map</h2><div id="big-map-content"></div></div>
+  </div>
+
+  <script>
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + id).style.display = 'block';
+    }
+    function toggleBigMap() {
+      const m = document.getElementById('big-map-overlay');
+      m.style.display = (m.style.display === 'flex' || m.style.display === 'block') ? 'none' : 'block';
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
