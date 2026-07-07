@@ -133,7 +133,8 @@ const CommandCore = {
   // ------------------------------------------------------------
   // 4. ENTRY POINT
   // ------------------------------------------------------------
-  run(raw) {
+  CommandCore.run(cmd);
+ {
     const parsed = this.parse(raw);
     this.route(parsed);
   }
