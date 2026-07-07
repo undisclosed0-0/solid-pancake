@@ -31,7 +31,7 @@ const CommandCore = {
       return this.routeMovement(verb);
     }
 
-    // COMBAT
+    // COMBAT / PVP
     if (["attack","strike","hit","bash","pvp","duel"].includes(verb)) {
       return this.routeCombat(verb, args);
     }
@@ -133,8 +133,7 @@ const CommandCore = {
   // ------------------------------------------------------------
   // 4. ENTRY POINT
   // ------------------------------------------------------------
-  CommandCore.run(cmd);
- {
+  run(raw) {
     const parsed = this.parse(raw);
     this.route(parsed);
   }
